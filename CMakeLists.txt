@@ -20,7 +20,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(ftxui)
 
-add_executable(Game src/main.cpp src/pacman.cpp)
+add_executable(
+    Game
+    src/main.cpp
+    src/pacman.cpp
+    src/ui.cpp
+)
+
+add_executable(Server src/server.cpp)
 
 target_include_directories(Game PRIVATE include)
 
