@@ -27,7 +27,11 @@ add_executable(
     src/ui.cpp
 )
 
-add_executable(Server src/server.cpp)
+add_executable(
+    Server
+    src/server.cpp
+    src/server_connection.cpp
+)
 
 target_include_directories(Game PRIVATE include)
 
