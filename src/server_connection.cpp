@@ -11,14 +11,14 @@
 #include <thread>
 
 ServerConnection::ServerConnection()
-    : socket_fd(-1), back_log(25), port("8080"), err_msg(""), client_pairs()
+    : socket_fd(-1), back_log(25), port("8080"), err_msg(""), thread_data()
 {
 }
 
 ServerConnection::~ServerConnection()
 {
     // todo:
-    this->client_pairs.clear();
+    // this->client_pairs.clear();
 
     close(this->socket_fd);
 }
@@ -26,8 +26,6 @@ ServerConnection::~ServerConnection()
 void ServerConnection::setGameMap(std::vector<std::string> map)
 {
     this->map = map;
-    for (std::string line : this->map)
-        std::cout << line << "\n";
 }
 
 // want to return a struct with a union for the error instead?
@@ -104,14 +102,39 @@ void ServerConnection::waitForClient()
             continue;
         }
 
-        // if this is a new player, we store their socket in our map
-        // if this descriptor
-        this->client_pairs.insert({client_fd, -1});
+        // lock our critical section with std::lock_guard.
+        // lock_guard will unlock the mutex when it falls out of it's scope
+        {
+            std::lock_guard<std::mutex> lock(thread_data.thread_mutex);
+            thread_data.accepted_fd = client_fd;
+        }
+
+        // start a new thread
+        std::thread t(&ServerConnection::thread_handleConnection, this);
     }
 }
 
-void ServerConnection::handleConnection()
+// This functions runs in the spawned thread
+// If we receive a new player, we check if there is another player who has not
+// been paired up. If there is, we pair that player with this new player and the
+// thread continues to run.
+// If there is no player waiting to be paired, this new player will be inserted
+// into the client map and the thread exits.
+void ServerConnection::thread_handleConnection()
 {
+    int new_client;
+    std::unordered_map<int, int>::iterator players;
+
+    // lock our critical sections with a lock_guard that unlocks the mutex
+    // when it falls out of scope
+    {
+        std::lock_guard<std::mutex> lock(thread_data.thread_mutex);
+        new_client = thread_data.accepted_fd;
+        players = thread_data.client_pairs.find(new_client);
+    }
+
+    // read from the new client
+    // TODO:
 }
 
 std::string ServerConnection::getErrorMsg()

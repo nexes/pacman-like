@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -33,7 +34,25 @@ public:
     std::string getPort();
 
 private:
-    void handleConnection();
+    struct CriticalSection
+    {
+        // mutex to lock when writing data
+        std::mutex thread_mutex;
+
+        // this is the accepted fd from accept().
+        // this value if new, will be inserted into client_pairs.
+        // this value gets overwritten on new accept() calls
+        int accepted_fd;
+
+        // an unordered map of players paired together
+        // key: the players socket descriptor
+        // value: the players opponents socket descriptor.
+        std::unordered_map<int, int> client_pairs;
+    };
+
+    // handle a new connection ( a new player )
+    // void handleConnection(CriticalSection &);
+    void thread_handleConnection();
 
 private:
     // the server file descriptor
@@ -44,12 +63,9 @@ private:
     std::string port;
     // the value of the error message if any
     std::string err_msg;
-
     // the map the players will play on
     std::vector<std::string> map;
 
-    // an unordered map of players paired together
-    // key: the players socket descriptor
-    // value: the players opponents socket descriptor.
-    std::unordered_map<int, int> client_pairs;
+    // data structure that each thread will have access to
+    CriticalSection thread_data;
 };
