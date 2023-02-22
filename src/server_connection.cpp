@@ -90,6 +90,7 @@ void ServerConnection::waitForClient()
     while (accepting) {
         struct sockaddr_storage client_addr;
         socklen_t client_addr_len = sizeof(client_addr);
+        bool paired = false;
 
         // accept a new client connection
         int client_fd =
@@ -106,11 +107,34 @@ void ServerConnection::waitForClient()
         // lock_guard will unlock the mutex when it falls out of it's scope
         {
             std::lock_guard<std::mutex> lock(thread_data.thread_mutex);
-            thread_data.accepted_fd = client_fd;
-        }
 
-        // start a new thread
-        std::thread t(&ServerConnection::thread_handleConnection, this);
+            // if this is the first player on the server, than just insert them with no
+            // opponent (-1)
+            if (thread_data.client_pairs.size() == 0) {
+                thread_data.client_pairs.insert({client_fd, -1});
+            } else {
+                // check if we can pair this new player with someone who is waiting,
+                for (const auto &[key, value] : thread_data.client_pairs) {
+                    if (value == -1) {
+                        thread_data.client_pairs[key] = client_fd;
+                        paired = true;
+                        break;
+                    }
+                }
+
+                // no waiting player found, insert as a new player waiting
+                if (!paired)
+                    thread_data.client_pairs.insert({client_fd, -1});
+            }
+        }  // critical section unlocks here
+
+        // only start a new thread if this was a new player that didn't get paired with an
+        // already waiting player. Otherwise, the already existing players thread will
+        // handle to communications for both players
+        if (!paired) {
+            std::thread t(&ServerConnection::thread_handleConnection, this, client_fd);
+            t.detach();  // TODO: better thread managment
+        }
     }
 }
 
