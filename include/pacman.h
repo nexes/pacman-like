@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../include/ui.h"
+#include "client_connection.h"
+#include "ui.h"
 
 class Pacman
 {
@@ -16,5 +17,7 @@ public:
 private:
     int width;
     int height;
+
     UI ui;
+    ClientConnection connection;
 };

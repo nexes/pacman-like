@@ -25,6 +25,7 @@ add_executable(
     src/main.cpp
     src/pacman.cpp
     src/ui.cpp
+    src/client_connection.cpp
 )
 
 add_executable(
