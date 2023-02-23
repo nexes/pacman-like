@@ -5,18 +5,15 @@
 #include <string>
 
 namespace RequestType {
-    // New player request
+    // request types from client to server
     const int NewPlayer = 0;
-
-    // Disconnect player request
     const int DisconnectPlayer = 1;
-
-    // Payer update request
     const int UpdatePlayer = 2;
+
 }  // namespace RequestType
 
 namespace SerializeInfo {
-    // 8k: make size of data to serialize
+    // 8k: max size of data to serialize
     const int MAX_SIZE = 8192;
 }  // namespace SerializeInfo
 
