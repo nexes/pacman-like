@@ -10,7 +10,10 @@ public:
     ~Pacman();
 
     void setupUI(int, int);
-    void setupNetwork();
+
+    // setup a connection to the pacman server
+    // returns true if the connection was successful
+    bool setupNetwork();
 
     void run();
 
