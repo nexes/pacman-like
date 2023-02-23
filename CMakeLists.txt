@@ -20,22 +20,27 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(ftxui)
 
+# the files needed to make the client side binary
 add_executable(
     Game
     src/main.cpp
     src/pacman.cpp
     src/ui.cpp
     src/client_connection.cpp
+    src/serializer.cpp
 )
 
+# the files needed to make the server side binary
 add_executable(
     Server
     src/server.cpp
     src/server_connection.cpp
+    src/serializer.cpp
 )
 
 target_include_directories(Game PRIVATE include)
 
+# needed for the FTXUI library to work. This is per their documentation
 target_link_libraries(
     Game
     PRIVATE ftxui::screen
