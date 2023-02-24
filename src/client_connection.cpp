@@ -106,3 +106,8 @@ std::string ClientConnection::getErrorMsg()
 {
     return this->err_msg;
 }
+
+std::vector<std::string> ClientConnection::getGameMap() const
+{
+    return this->client_map;
+}

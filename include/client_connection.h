@@ -26,6 +26,9 @@ public:
     // return the error message if one was set
     std::string getErrorMsg();
 
+    // return the map retrieved from the server
+    std::vector<std::string> getGameMap() const;
+
 private:
     // socket to the server
     int socket_fd;
