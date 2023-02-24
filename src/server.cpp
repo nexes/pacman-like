@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 
+#include "../include/my_types.h"
 #include "../include/server_connection.h"
 
 // read the game map from the text file and return it as a list
@@ -35,7 +36,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    std::cout << "Server listening on port " << connection.getPort() << "\n";
+    std::cout << "Server listening on port " << ServerInfo::server_port << "\n";
     connection.waitForClient();
 
     return 0;
