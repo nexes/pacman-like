@@ -1,11 +1,9 @@
 #pragma once
-
 #include <mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-// TODO
 class ServerConnection
 {
 public:
@@ -30,9 +28,6 @@ public:
     // message will be set and can be retrieved here
     std::string getErrorMsg();
 
-    // returns the port number the server is listening on
-    std::string getPort();
-
 private:
     struct CriticalSection
     {
@@ -51,21 +46,24 @@ private:
     };
 
     // handle a new connection ( a new player )
-    // void handleConnection(CriticalSection &);
-    void thread_handleConnection();
+    void thread_handleConnection(int);
+
+    // handle the new player request
+    void thread_newPlayerRequest(int);
+
+    // handle the player disconnect request
+    void thread_disconnectPlayerRequest();
+
+    // handle a player update request
+    void thread_updatePlayerRequest();
 
 private:
     // the server file descriptor
     int socket_fd;
-    // the number of connections allowed, passed to listen()
-    int back_log;
-    // the server port number, default 8080
-    std::string port;
     // the value of the error message if any
     std::string err_msg;
     // the map the players will play on
     std::vector<std::string> map;
-
     // data structure that each thread will have access to
     CriticalSection thread_data;
 };

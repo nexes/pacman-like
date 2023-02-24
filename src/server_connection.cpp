@@ -6,12 +6,15 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <chrono>
 #include <iostream>
 #include <string>
 #include <thread>
 
-ServerConnection::ServerConnection()
-    : socket_fd(-1), back_log(25), port("8080"), err_msg(""), thread_data()
+#include "../include/my_types.h"
+#include "../include/serializer.h"
+
+ServerConnection::ServerConnection() : socket_fd(-1), err_msg(""), thread_data()
 {
 }
 
@@ -25,6 +28,7 @@ ServerConnection::~ServerConnection()
 
 void ServerConnection::setGameMap(std::vector<std::string> map)
 {
+    // TODO:
     this->map = map;
 }
 
@@ -41,7 +45,7 @@ bool ServerConnection::setupConnection()
     hints.ai_flags = AI_PASSIVE;
 
     // setup server info
-    status = getaddrinfo(NULL, this->port.c_str(), &hints, &info);
+    status = getaddrinfo(NULL, ServerInfo::server_port.c_str(), &hints, &info);
     if (status != 0) {
         this->err_msg = std::string("getaddrinfo(): ").append(gai_strerror(status));
         return false;
@@ -70,7 +74,7 @@ bool ServerConnection::setupConnection()
     }
 
     // listen on our socket
-    status = listen(this->socket_fd, this->back_log);
+    status = listen(this->socket_fd, ServerInfo::back_log);
     if (status == -1) {
         this->err_msg = std::string("listen(): ").append(strerror(status));
 
@@ -103,8 +107,7 @@ void ServerConnection::waitForClient()
             continue;
         }
 
-        // lock our critical section with std::lock_guard.
-        // lock_guard will unlock the mutex when it falls out of it's scope
+        // lock our critical section with std::lock_guard. unlock once dropped from scope
         {
             std::lock_guard<std::mutex> lock(thread_data.thread_mutex);
 
@@ -138,35 +141,102 @@ void ServerConnection::waitForClient()
     }
 }
 
-// This functions runs in the spawned thread
-// If we receive a new player, we check if there is another player who has not
-// been paired up. If there is, we pair that player with this new player and the
-// thread continues to run.
-// If there is no player waiting to be paired, this new player will be inserted
-// into the client map and the thread exits.
-void ServerConnection::thread_handleConnection()
+// This function runs in the spawned thread
+// This function is called when the server's accept() is called when a new client
+// connects. player_fd is the socket descriptor of player 1 of the pair
+void ServerConnection::thread_handleConnection(int player_fd)
 {
-    int new_client;
-    std::unordered_map<int, int>::iterator players;
+    bool playing = true;
+    int opponent_fd = -1;
+    char p1_data[ServerInfo::player_read_size];
+    char p2_data[ServerInfo::player_read_size];
 
-    // lock our critical sections with a lock_guard that unlocks the mutex
-    // when it falls out of scope
-    {
-        std::lock_guard<std::mutex> lock(thread_data.thread_mutex);
-        new_client = thread_data.accepted_fd;
-        players = thread_data.client_pairs.find(new_client);
+    // we will lock the critical section and make sure that both players are
+    // still present. Then we will take turns listening to both players.
+    while (playing) {
+        {
+            std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
+            opponent_fd = this->thread_data.client_pairs[player_fd];
+        }  // critical section unlocks here
+
+        // read from player 1 (player_fd)
+        int p1_read = read(player_fd, (void *)p1_data, sizeof(p1_data));
+        if (p1_read == -1) {
+            std::cout << "Error reading player 1 " << strerror(p1_read) << "\n";
+        }
+
+        // read from player 2 if they exist (opponent_fd)
+        int p2_read = 0;
+        if (opponent_fd != -1) {
+            p2_read = read(opponent_fd, (void *)p2_data, sizeof(p2_data));
+            if (p2_read == -1) {
+                std::cout << "Error reading player 2 " << strerror(p2_read) << "\n";
+            }
+        }
+
+        // nothing was sent by these players, we'll wait
+        if (p1_read > 0 && p2_read > 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            continue;
+        }
+
+        // parse and handle player 1 request
+        if (p1_read > 0) {
+            int *p = (int *)p1_data;
+            int type = *p;  // first 4 bytes is always the type
+
+            switch (type) {
+            case RequestType::NewPlayer:
+                thread_newPlayerRequest(player_fd);
+                break;
+            case RequestType::DisconnectPlayer:
+                break;
+            case RequestType::UpdatePlayer:
+                break;
+            };
+        }
+
+        // parse and handle player 2 request
+        if (p2_read > 0) {
+            int *p = (int *)p2_data;
+            int type = *p;  // first 4 bytes is always the type
+
+            switch (type) {
+            case RequestType::NewPlayer:
+                thread_newPlayerRequest(opponent_fd);
+                break;
+            case RequestType::DisconnectPlayer:
+                break;
+            case RequestType::UpdatePlayer:
+                break;
+            };
+        }
     }
+}
 
-    // read from the new client
-    // TODO:
+// handle the new player request. Send a unique ID for the user and the game map.
+// the unique ID will just be the socket fd the server created for this player
+// this function is called from the spawned thread
+void ServerConnection::thread_newPlayerRequest(int socket)
+{
+    SerializedData d = Serializer::SerializeNewPlayerResponse(socket, this->map);
+
+    int len = d.len;
+    int sent = 0;
+
+    do {
+        int s = write(socket, (void *)d.data, len);
+        if (s == -1) {
+            // TODO: error handle
+            std::cout << "Error sending " << strerror(s);
+            break;
+        }
+
+        sent += s;
+    } while (sent != len);
 }
 
 std::string ServerConnection::getErrorMsg()
 {
     return this->err_msg;
-}
-
-std::string ServerConnection::getPort()
-{
-    return this->port;
 }
