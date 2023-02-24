@@ -55,3 +55,30 @@ SerializedData Serializer::SerializeNewPlayerResponse(int id, vector<string> &ma
 
     return d;
 }
+
+// take a char array that was serialized by SerializeNewPlayerResponse() and deserialize
+// it into a struct
+DeSerializedData Serializer::DeSerializeNewPlayerResponse(const char data[])
+{
+    DeSerializedData d;
+    int *ptr = (int *)data;
+
+    d.responseType = *ptr++;
+    d.userID = *ptr++;
+    d.len = *ptr++;
+
+    char *c_ptr = (char *)ptr;
+
+    string line;
+    for (int i = 0; i < d.len; i++) {
+        if (*c_ptr == '\n') {
+            d.map.push_back(line);
+            line = "";
+            c_ptr++;
+        } else {
+            line.push_back(*c_ptr++);
+        }
+    }
+
+    return d;
+}

@@ -17,6 +17,20 @@ struct SerializedData
     char data[SerializeInfo::MAX_SIZE];
 };
 
+// the returned data struct for each de-serialization function
+struct DeSerializedData
+{
+    // the unique user ID provided by the server
+    int userID;
+    // the response type
+    int responseType;
+    // the len of the data
+    int len;
+
+    // the game map data
+    vector<string> map;
+};
+
 // this is a simple and not too clever serializer. This is not a general
 // purpose serializer, it will just work for this project. It doens't need
 // to know anything about the project, so it will just be a static, functional
@@ -32,4 +46,7 @@ public:
 
     // serialize the new player response to send to the client
     static SerializedData SerializeNewPlayerResponse(int, vector<string> &);
+
+    // de-serialize the new player response. Pass in the char array from the response
+    static DeSerializedData DeSerializeNewPlayerResponse(const char[]);
 };
