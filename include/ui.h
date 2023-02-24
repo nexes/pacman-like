@@ -12,15 +12,12 @@ class UI
 public:
     UI();
 
-    void initalizeUI(int, int);
-    void displayGetUserName();
+    // display ther username UI and return the the name the user inputs
+    string displayGetUserName();
+    // display the game map the server sent
     void displayGameMap(vector<string>);
 
-    string username() const;
-
 private:
-    int canvas_width;
-    int canvas_height;
     bool show_userinput;
     bool show_map;
     string user_name;

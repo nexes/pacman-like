@@ -1,7 +1,7 @@
 #pragma once
 
-// this file will hold all the 'magic' numbers of the program. This way if something needs
-// to change I can change it in on place
+// this file will hold all the variables of the program. This way if something needs
+// to change it can be changed here
 #include <string>
 
 namespace RequestType {
@@ -32,3 +32,14 @@ namespace ServerInfo {
     const int player_read_size = 2048;
 
 }  // namespace ServerInfo
+
+namespace GameInfo {
+    // width of the game window
+    const int WindowWidth = 150;
+    // height of the game window
+    const int WindowHeight = 80;
+    // width of the canvas (where to map is drawn)
+    const int CanvasWidth = 180;
+    // height of the canvas (where to map is drawn)
+    const int CanvasHeight = 100;
+}  // namespace GameInfo

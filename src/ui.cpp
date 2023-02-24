@@ -6,22 +6,13 @@
 #include <ftxui/dom/elements.hpp>
 #include <iostream>
 
-UI::UI()
-    : canvas_width(100),
-      canvas_height(100),
-      show_userinput(true),
-      show_map(false),
-      user_name("")
+#include "../include/my_types.h"
+
+UI::UI() : show_userinput(true), show_map(false), user_name("")
 {
 }
 
-// return the username the player inputed
-string UI::username() const
-{
-    return this->user_name;
-}
-
-void UI::displayGetUserName()
+string UI::displayGetUserName()
 {
     // setup UI componenets to show user input and an OK button
     ftxui::Component username_input = ftxui::Input(&this->user_name, "Player Name");
@@ -43,24 +34,23 @@ void UI::displayGetUserName()
     // render the userinput container in a hbox
     userinput_container |= ftxui::Renderer([&](ftxui::Element inner) {
         return ftxui::hbox({
-                   ftxui::text(" Username: ") | ftxui::bold | ftxui::vcenter,
+                   ftxui::text(" Player Name: ") | ftxui::bold | ftxui::vcenter,
                    inner,
                }) |
                ftxui::center;
     });
 
     this->screen.Loop(userinput_container);
+    return this->user_name;
 }
 
 void UI::displayGameMap(vector<string> mapLines)
 {
-    int width = this->canvas_width;
-    int height = this->canvas_height;
     string key_press = "";
 
     // create a canvas component that will display the pac-man map
     ftxui::Component canvas_component = ftxui::Renderer([&] {
-        ftxui::Canvas c = ftxui::Canvas(width, height);
+        ftxui::Canvas c = ftxui::Canvas(GameInfo::CanvasWidth, GameInfo::CanvasHeight);
         int x = 0;
         int y = 0;
         int x_space = 2;
@@ -129,10 +119,4 @@ void UI::displayGameMap(vector<string> mapLines)
     });
 
     this->screen.Loop(canvas_component);
-}
-
-void UI::initalizeUI(int width, int height)
-{
-    canvas_width = width;
-    canvas_height = height;
 }
