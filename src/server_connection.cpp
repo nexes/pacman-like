@@ -176,7 +176,7 @@ void ServerConnection::thread_handleConnection(int player_fd)
 
         // nothing was sent by these players, we'll wait
         if (p1_read > 0 && p2_read > 0) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            std::this_thread::sleep_for(std::chrono::milliseconds(GameInfo::ThreadSleep));
             continue;
         }
 

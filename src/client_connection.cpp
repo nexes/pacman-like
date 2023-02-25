@@ -49,6 +49,13 @@ bool ClientConnection::setupConnection()
         return false;
     }
 
+    // set a timeout for reading on the socket for 50ms
+    struct timeval tv;
+    tv.tv_sec = 0;
+    tv.tv_usec = 50000;  // 50 ms
+    status =
+        setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (const void *)&tv, sizeof(tv));
+
     // connect to the server
     status = connect(socket_fd, info->ai_addr, info->ai_addrlen);
     if (status == -1) {
