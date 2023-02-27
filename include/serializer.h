@@ -20,14 +20,17 @@ struct SerializedData
 // the returned data struct for each de-serialization function
 struct DeSerializedData
 {
-    // the unique user ID provided by the server
-    int userID;
     // the response type
     int responseType;
+};
+
+struct NewPlayerData : public DeSerializedData
+{
+    // the unique user ID provided by the server
+    int userID;
     // the len of the data
     int len;
-
-    // the game map data
+    // for the new player resonse this will be the game map
     vector<string> map;
 };
 
@@ -48,5 +51,5 @@ public:
     static SerializedData SerializeNewPlayerResponse(int, vector<string> &);
 
     // de-serialize the new player response. Pass in the char array from the response
-    static DeSerializedData DeSerializeNewPlayerResponse(const char[]);
+    static NewPlayerData DeSerializeNewPlayerResponse(const char[]);
 };

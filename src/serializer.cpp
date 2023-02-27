@@ -58,9 +58,9 @@ SerializedData Serializer::SerializeNewPlayerResponse(int id, vector<string> &ma
 
 // take a char array that was serialized by SerializeNewPlayerResponse() and deserialize
 // it into a struct
-DeSerializedData Serializer::DeSerializeNewPlayerResponse(const char data[])
+NewPlayerData Serializer::DeSerializeNewPlayerResponse(const char data[])
 {
-    DeSerializedData d;
+    NewPlayerData d;
     int *ptr = (int *)data;
 
     d.responseType = *ptr++;
