@@ -9,6 +9,7 @@ namespace RequestType {
     const int NewPlayer = 0;
     const int DisconnectPlayer = 1;
     const int UpdatePlayer = 2;
+    const int None = 3;
 
 }  // namespace RequestType
 
@@ -25,7 +26,7 @@ namespace ServerInfo {
     static std::string server_port = "8080";
 
     // the server hostname or IP
-    // const char *server_name = "csslab12.uwb.edu";
+    // static std::string server_name = "csslab12.uwb.edu";
     static std::string server_name = "localhost";
 
     // 2k max data size to read from players buffer
