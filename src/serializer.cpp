@@ -3,15 +3,26 @@
 // serialize the new player request
 // NewPlayer format {
 //     Type: int
+//     Name: string (player name)
 // }
-SerializedData Serializer::SerializeNewPlayerRequest()
+SerializedData Serializer::SerializeNewPlayerRequest(string playername)
 {
-    // there is nothing to tell the server except it's a new player
     SerializedData d;
-    int *p = (int *)d.data;
-    *p = RequestType::NewPlayer;
+    int *ptr = (int *)d.data;
 
-    d.len = sizeof(RequestType::NewPlayer);
+    // type
+    *ptr++ = RequestType::NewPlayer;
+
+    // player name
+    char *c_ptr = (char *)ptr;
+    for (const char c : playername)
+        *c_ptr++ = c;
+
+    // delimiter
+    *c_ptr++ = '%';
+
+    char *start = (char *)d.data;
+    d.len = sizeof(int) + c_ptr - start;
     return d;
 }
 
@@ -76,8 +87,6 @@ SerializedData Serializer::SerializeNewPlayerResponse(int id, vector<string> &ma
     return d;
 }
 
-// take a char array that was serialized by SerializeNewPlayerResponse() and deserialize
-// it into a struct
 NewPlayerData Serializer::DeSerializeNewPlayerResponse(const char data[])
 {
     NewPlayerData d;
@@ -100,6 +109,20 @@ NewPlayerData Serializer::DeSerializeNewPlayerResponse(const char data[])
             line.push_back(*c_ptr++);
         }
     }
+
+    return d;
+}
+
+NewPlayerData Serializer::DeSerializeNewPlayerRequest(const char data[])
+{
+    NewPlayerData d;
+
+    int *ptr = (int *)data;
+    d.responseType = *ptr++;
+
+    char *c_ptr = (char *)ptr;
+    while (*c_ptr != '%')
+        d.playername.push_back(*c_ptr++);
 
     return d;
 }

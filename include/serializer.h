@@ -31,6 +31,8 @@ struct NewPlayerData : public DeSerializedData
 {
     // the unique user ID provided by the server
     int userID;
+    // the playername
+    string playername;
     // if this player has an opponent to playe
     bool has_opponent;
     // the len of the data
@@ -50,7 +52,7 @@ public:
     Serializer(const Serializer &) = delete;
 
     // serialize a new player request to send to the server
-    static SerializedData SerializeNewPlayerRequest();
+    static SerializedData SerializeNewPlayerRequest(string);
 
     // serialize a new opponent request to send to the client
     static SerializedData SerializeNewOpponentResponse(int);
@@ -58,6 +60,9 @@ public:
     // serialize the new player response to send to the client
     static SerializedData SerializeNewPlayerResponse(int, vector<string> &);
 
-    // de-serialize the new player response. Pass in the char array from the response
+    // de-serialize the new player response.
     static NewPlayerData DeSerializeNewPlayerResponse(const char[]);
+
+    // de-serialize the new player request
+    static NewPlayerData DeSerializeNewPlayerRequest(const char[]);
 };
