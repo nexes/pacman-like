@@ -8,7 +8,6 @@
 
 #include <chrono>
 #include <iostream>
-#include <string>
 #include <thread>
 
 #include "../include/my_types.h"
@@ -146,6 +145,7 @@ void ServerConnection::thread_handleConnection(int player_socket)
 {
     bool playing = true;
     int opponent_fd = -1;
+    std::string player_name;
     char p1_data[ServerInfo::player_read_size];
 
     while (playing) {
@@ -171,7 +171,9 @@ void ServerConnection::thread_handleConnection(int player_socket)
             int type = *p;  // first 4 bytes is always the type
 
             switch (type) {
-            case RequestType::NewPlayer:
+            case RequestType::NewPlayer: {
+                NewPlayerData p = Serializer::DeSerializeNewPlayerRequest(p1_data);
+                player_name = p.playername;
                 thread_newPlayerRequest(player_socket);
 
                 if (opponent_fd != -1) {
@@ -180,6 +182,7 @@ void ServerConnection::thread_handleConnection(int player_socket)
                     thread_newOpponentRequest(opponent_fd);
                 }
                 break;
+            }
             case RequestType::DisconnectPlayer:
                 break;
             case RequestType::UpdatePlayer:
