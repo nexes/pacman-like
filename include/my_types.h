@@ -9,7 +9,8 @@ namespace RequestType {
     const int NewPlayer = 0;
     const int DisconnectPlayer = 1;
     const int UpdatePlayer = 2;
-    const int None = 3;
+    const int NewOpponent = 3;
+    const int None = 4;
 
 }  // namespace RequestType
 

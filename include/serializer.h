@@ -20,6 +20,9 @@ struct SerializedData
 // the returned data struct for each de-serialization function
 struct DeSerializedData
 {
+    virtual ~DeSerializedData()
+    {
+    }
     // the response type
     int responseType;
 };
@@ -28,6 +31,8 @@ struct NewPlayerData : public DeSerializedData
 {
     // the unique user ID provided by the server
     int userID;
+    // if this player has an opponent to playe
+    bool has_opponent;
     // the len of the data
     int len;
     // for the new player resonse this will be the game map
@@ -45,7 +50,10 @@ public:
     Serializer(const Serializer &) = delete;
 
     // serialize a new player request to send to the server
-    static SerializedData SerializeNewPlayer();
+    static SerializedData SerializeNewPlayerRequest();
+
+    // serialize a new opponent request to send to the client
+    static SerializedData SerializeNewOpponentResponse(int);
 
     // serialize the new player response to send to the client
     static SerializedData SerializeNewPlayerResponse(int, vector<string> &);

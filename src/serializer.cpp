@@ -4,7 +4,7 @@
 // NewPlayer format {
 //     Type: int
 // }
-SerializedData Serializer::SerializeNewPlayer()
+SerializedData Serializer::SerializeNewPlayerRequest()
 {
     // there is nothing to tell the server except it's a new player
     SerializedData d;
@@ -15,10 +15,27 @@ SerializedData Serializer::SerializeNewPlayer()
     return d;
 }
 
+// serialzie the new opponet response
+// NewOpponent response format {
+//      Type: int
+//      ID:   int (players unique id)
+// }
+SerializedData Serializer::SerializeNewOpponentResponse(int socket)
+{
+    SerializedData d;
+    int *ptr = (int *)d.data;
+    *ptr++ = RequestType::NewOpponent;
+    *ptr = socket;
+
+    d.len = sizeof(int) * 2;
+    return d;
+}
+
 // serialize the new player response
 // NewPlayer response format {
 //      Type:  int
 //      ID:    int (players unique id)
+//      OP:    int (has an opponent)
 //      Len:   int (size of Data in bytes)
 //      Data:  char[] (map data)
 // }
@@ -32,6 +49,9 @@ SerializedData Serializer::SerializeNewPlayerResponse(int id, vector<string> &ma
 
     // ID
     *int_ptr++ = id;
+
+    // OP
+    *int_ptr++ = 0;
 
     // Len
     int map_len = 0;
@@ -51,7 +71,7 @@ SerializedData Serializer::SerializeNewPlayerResponse(int id, vector<string> &ma
 
     // Type:int + ID:int + Len:int + chars: char[]
     char *start = (char *)d.data;
-    d.len = (sizeof(int) * 3) + char_ptr - start;
+    d.len = (sizeof(int) * 4) + char_ptr - start;
 
     return d;
 }
@@ -65,6 +85,7 @@ NewPlayerData Serializer::DeSerializeNewPlayerResponse(const char data[])
 
     d.responseType = *ptr++;
     d.userID = *ptr++;
+    d.has_opponent = *ptr++;
     d.len = *ptr++;
 
     char *c_ptr = (char *)ptr;
