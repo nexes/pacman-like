@@ -20,7 +20,7 @@ std::vector<std::string> readMapData(std::string map_file)
         }
         file.close();
     } else {
-        std::cout << "Couldn't open map file: " << map_file << "\n";
+        std::cerr << "Couldn't open map file: " << map_file << "\n";
     }
 
     return map;
@@ -32,11 +32,11 @@ int main(int argc, char *argv[])
     connection.setGameMap(readMapData("./Map1.txt"));
 
     if (!connection.setupConnection()) {
-        std::cout << connection.getErrorMsg();
+        std::cerr << connection.getErrorMsg();
         return -1;
     }
 
-    std::cout << "Server listening on port " << ServerInfo::server_port << "\n";
+    std::cerr << "Server listening on port " << ServerInfo::server_port << "\n";
     connection.waitForClient();
 
     return 0;
