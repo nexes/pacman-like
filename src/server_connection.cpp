@@ -224,8 +224,6 @@ void ServerConnection::thread_newOpponentRequest(int player_socket)
 
     do {
         int s = write(player_socket, (void *)d.data, len);
-        std::cerr << "sending to player " << player_socket << " newOpponentResponse " << s
-                  << " bytes\n";
         if (s == -1) {
             // TODO: error handle
             std::cerr << "Error sending " << strerror(s) << "\n";
@@ -234,7 +232,6 @@ void ServerConnection::thread_newOpponentRequest(int player_socket)
 
         sent += s;
     } while (sent != len);
-    std::cerr << "finished sending new opponent response for " << player_socket << "\n";
 }
 
 std::string ServerConnection::getErrorMsg()
