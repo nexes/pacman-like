@@ -103,7 +103,7 @@ void ServerConnection::waitForClient()
         // if an error occured print out (or save to a log) the error, but don't stop
         // the server
         if (client_fd == -1) {
-            std::cout << "accept(): " << gai_strerror(client_fd) << "\n";
+            std::cerr << "accept(): " << gai_strerror(client_fd) << "\n";
             continue;
         }
 
@@ -116,10 +116,13 @@ void ServerConnection::waitForClient()
             if (thread_data.client_pairs.size() == 0) {
                 thread_data.client_pairs.insert({client_fd, -1});
             } else {
-                // check if we can pair this new player with someone who is waiting,
+                // check if we can pair this new player with someone who is waiting.
+                // we will pair like this: A->B and B->A.
+                // so each thread can quickly get it's opponent
                 for (const auto &[key, value] : thread_data.client_pairs) {
                     if (value == -1) {
                         thread_data.client_pairs[key] = client_fd;
+                        thread_data.client_pairs[client_fd] = key;
                         paired = true;
                         break;
                     }
@@ -131,51 +134,33 @@ void ServerConnection::waitForClient()
             }
         }  // critical section unlocks here
 
-        // only start a new thread if this was a new player that didn't get paired with an
-        // already waiting player. Otherwise, the already existing players thread will
-        // handle to communications for both players
-        if (!paired) {
-            std::thread t(&ServerConnection::thread_handleConnection, this, client_fd);
-            t.detach();  // TODO: better thread managment
-        }
+        // start a new thread to handle this player
+        std::thread t(&ServerConnection::thread_handleConnection, this, client_fd);
+        t.detach();  // TODO: better thread managment
     }
 }
 
 // This function runs in the spawned thread
-// This function is called when the server's accept() is called when a new client
-// connects. player_fd is the socket descriptor of player 1 of the pair
-void ServerConnection::thread_handleConnection(int player_fd)
+// This function is called when the server's accept()'d a new client
+void ServerConnection::thread_handleConnection(int player_socket)
 {
     bool playing = true;
     int opponent_fd = -1;
     char p1_data[ServerInfo::player_read_size];
-    char p2_data[ServerInfo::player_read_size];
 
-    // we will lock the critical section and make sure that both players are
-    // still present. Then we will take turns listening to both players.
     while (playing) {
         {
             std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
-            opponent_fd = this->thread_data.client_pairs[player_fd];
+            opponent_fd = this->thread_data.client_pairs[player_socket];
         }  // critical section unlocks here
 
-        // read from player 1 (player_fd)
-        int p1_read = read(player_fd, (void *)p1_data, sizeof(p1_data));
+        int p1_read = read(player_socket, (void *)p1_data, sizeof(p1_data));
         if (p1_read == -1) {
-            std::cout << "Error reading player 1 " << strerror(p1_read) << "\n";
+            std::cerr << "Error reading player 1 " << strerror(p1_read) << "\n";
         }
 
-        // read from player 2 if they exist (opponent_fd)
-        int p2_read = 0;
-        if (opponent_fd != -1) {
-            p2_read = read(opponent_fd, (void *)p2_data, sizeof(p2_data));
-            if (p2_read == -1) {
-                std::cout << "Error reading player 2 " << strerror(p2_read) << "\n";
-            }
-        }
-
-        // nothing was sent by these players, we'll wait
-        if (p1_read > 0 && p2_read > 0) {
+        // if nothing was read, sleep and continue
+        if (p1_read < 1) {
             std::this_thread::sleep_for(std::chrono::milliseconds(GameInfo::ThreadSleep));
             continue;
         }
@@ -187,7 +172,13 @@ void ServerConnection::thread_handleConnection(int player_fd)
 
             switch (type) {
             case RequestType::NewPlayer:
-                thread_newPlayerRequest(player_fd);
+                thread_newPlayerRequest(player_socket);
+
+                if (opponent_fd != -1) {
+                    std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
+                    thread_newOpponentRequest(player_socket);
+                    thread_newOpponentRequest(opponent_fd);
+                }
                 break;
             case RequestType::DisconnectPlayer:
                 break;
@@ -196,26 +187,13 @@ void ServerConnection::thread_handleConnection(int player_fd)
             };
         }
 
-        // parse and handle player 2 request
-        if (p2_read > 0) {
-            int *p = (int *)p2_data;
-            int type = *p;  // first 4 bytes is always the type
-
-            switch (type) {
-            case RequestType::NewPlayer:
-                thread_newPlayerRequest(opponent_fd);
-                break;
-            case RequestType::DisconnectPlayer:
-                break;
-            case RequestType::UpdatePlayer:
-                break;
-            };
-        }
+        // sleep
+        std::this_thread::sleep_for(std::chrono::milliseconds(GameInfo::ThreadSleep));
     }
 }
 
 // handle the new player request. Send a unique ID for the user and the game map.
-// the unique ID will just be the socket fd the server created for this player
+// if this is player one, hasOpponent will be false, player two this will be true
 // this function is called from the spawned thread
 void ServerConnection::thread_newPlayerRequest(int socket)
 {
@@ -228,12 +206,35 @@ void ServerConnection::thread_newPlayerRequest(int socket)
         int s = write(socket, (void *)d.data, len);
         if (s == -1) {
             // TODO: error handle
-            std::cout << "Error sending " << strerror(s);
+            std::cerr << "Error sending " << strerror(s) << "\n";
             break;
         }
 
         sent += s;
     } while (sent != len);
+}
+
+// tell the other player that an opponent has been found
+void ServerConnection::thread_newOpponentRequest(int player_socket)
+{
+    SerializedData d = Serializer::SerializeNewOpponentResponse(player_socket);
+
+    int len = d.len;
+    int sent = 0;
+
+    do {
+        int s = write(player_socket, (void *)d.data, len);
+        std::cerr << "sending to player " << player_socket << " newOpponentResponse " << s
+                  << " bytes\n";
+        if (s == -1) {
+            // TODO: error handle
+            std::cerr << "Error sending " << strerror(s) << "\n";
+            break;
+        }
+
+        sent += s;
+    } while (sent != len);
+    std::cerr << "finished sending new opponent response for " << player_socket << "\n";
 }
 
 std::string ServerConnection::getErrorMsg()

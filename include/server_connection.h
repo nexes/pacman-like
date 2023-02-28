@@ -51,6 +51,9 @@ private:
     // handle the new player request
     void thread_newPlayerRequest(int);
 
+    // handle and new opponent found for player one
+    void thread_newOpponentRequest(int);
+
     // handle the player disconnect request
     void thread_disconnectPlayerRequest();
 
