@@ -86,7 +86,7 @@ bool ServerConnection::setupConnection()
     return true;
 }
 
-void ServerConnection::waitForClient()
+void ServerConnection::waitForPlayer()
 {
     bool accepting = true;
 

@@ -20,7 +20,7 @@ public:
     bool setupConnection();
 
     // listen on port 8080 to handle incoming clients
-    void waitForClient();
+    void waitForPlayer();
 
     // sets the game map that will be sent to the clients
     void setGameMap(std::vector<std::string>);
