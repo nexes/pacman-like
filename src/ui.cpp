@@ -1,14 +1,24 @@
+#include "../include/my_types.h"
 #include "../include/ui.h"
 
-#include <fstream>
 #include <ftxui/component/component.hpp>
+#include <ftxui/component/loop.hpp>
 #include <ftxui/dom/canvas.hpp>
 #include <ftxui/dom/elements.hpp>
+
+#include <fstream>
 #include <iostream>
 
-#include "../include/my_types.h"
-
-UI::UI() : show_userinput(true), show_map(false), user_name("")
+UI::UI()
+    : show_userinput(true),
+      show_map(false),
+      user_name(""),
+      player_x(-1),
+      player_y(-1),
+      player_score(0),
+      opponent_x(-1),
+      opponent_y(-1),
+      opponent_score(0)
 {
 }
 
@@ -44,63 +54,142 @@ string UI::displayGetUserName()
     return this->user_name;
 }
 
-void UI::displayGameMap(vector<string> mapLines)
+void UI::displayGameMap()
 {
-    string key_press = "";
-
     // create a canvas component that will display the pac-man map
-    ftxui::Component canvas_component = ftxui::Renderer([&] {
+    this->canvas = ftxui::Renderer([&] {
         ftxui::Canvas c = ftxui::Canvas(GameInfo::CanvasWidth, GameInfo::CanvasHeight);
-        int x = 0;
-        int y = 0;
         int x_space = 2;
         int y_space = 4;
+        int x = -x_space;
+        int y = -y_space;
 
-        for (std::string line : mapLines) {
-            for (int i = 0; i < line.length(); i++) {
-                switch (line[i]) {
+        // draw the map
+        int rows = this->mapData.size();
+        for (int i = 0; i < rows; i++) {
+            string line = this->mapData[i];
+            y += y_space;
+
+            for (int j = 0; j < line.length(); j++) {
+                x += x_space;
+
+                switch (line[j]) {
+                case ' ':
+                    c.DrawBlock(x, y, false);
+                    break;
                 case '-':
-                    c.DrawBlockLine(x, y, x + x_space, y, ftxui::Color::Blue);
+                    c.DrawPointLine(x, y, x + x_space, y, ftxui::Color::Blue);
                     break;
                 case '|':
-                    c.DrawBlockLine(x, y, x, y + y_space, ftxui::Color::Blue);
+                    c.DrawPointLine(x, y, x, y + y_space, ftxui::Color::Blue);
                     break;
-                case '.':
+                case '.': {
                     c.DrawPoint(x, y, true, ftxui::Color::Yellow);
                     break;
+                }
                 case 'X':
-                    c.DrawBlockCircleFilled(x, y, 1, ftxui::Color::Red);
+                    // get the initial position of player 1
+                    if (player_x == -1)
+                        player_x = x;
+                    if (player_y == -1)
+                        player_y = y;
                     break;
                 case 'Y':
-                    c.DrawBlockCircleFilled(x, y, 1, ftxui::Color::Green);
+                    // get the initial position of player 2
+                    if (opponent_x == -1)
+                        opponent_x = x;
+                    if (opponent_y == -1)
+                        opponent_y = y;
+
                     break;
                 }
-
-                x += x_space;
             }
-
-            y += y_space;
             x = 0;
         }
+
+        // draw our two players after the map is drawn
+        c.DrawBlockEllipseFilled(player_x + x_space, player_y, 1, 1, ftxui::Color::Red);
+        c.DrawBlockEllipseFilled(opponent_x + x_space,
+                                 opponent_y,
+                                 1,
+                                 1,
+                                 ftxui::Color::Green);
 
         // returns our canvas as an 'Element'
         return ftxui::canvas(std::move(c));
     });
 
     // capture keyboard events on the canvas component
-    canvas_component |= ftxui::CatchEvent([&](ftxui::Event event) {
+    this->canvas |= ftxui::CatchEvent([&](ftxui::Event event) {
         if (!event.is_mouse()) {
+            int rowSize = this->mapData.size();
+            int colIdx = player_x / 2;
+            int rowIdx = player_y / 4;
+
+            // handle player moving down
             if (event == ftxui::Event::ArrowDown) {
-                key_press = "DOWN";
+                if (rowIdx + 1 < rowSize) {
+                    char point = this->mapData[rowIdx + 1][colIdx];
+
+                    if (point != '|' && point != '-')
+                        player_y += 4;
+
+                    if (point == '.') {
+                        player_score += 5;
+                        this->mapData[rowIdx][colIdx] = ' ';
+                        movement.push_back({rowIdx, colIdx});
+                    }
+                }
                 return true;
+
+                // handle player moving left
             } else if (event == ftxui::Event::ArrowLeft) {
-                key_press = "LEFT";
+                if (colIdx - 1 >= 0) {
+                    char point = this->mapData[rowIdx][colIdx - 1];
+
+                    if (point != '|' && point != '-')
+                        player_x -= 2;
+
+                    if (point == '.') {
+                        player_score += 5;
+                        this->mapData[rowIdx][colIdx] = ' ';
+                        movement.push_back({rowIdx, colIdx});
+                    }
+                }
                 return true;
+
+                // handle player moving right
             } else if (event == ftxui::Event::ArrowRight) {
-                key_press = "RIGHT";
+                // each line (row) can have a different size
+                int colSize = this->mapData[rowIdx].size();
+                if (colIdx + 1 < colSize) {
+                    char point = this->mapData[rowIdx][colIdx + 1];
+
+                    if (point != '|' && point != '-')
+                        player_x += 2;
+
+                    if (point == '.') {
+                        player_score += 5;
+                        this->mapData[rowIdx][colIdx] = ' ';
+                        movement.push_back({rowIdx, colIdx});
+                    }
+                }
                 return true;
+
+                // handle player moving up
             } else if (event == ftxui::Event::ArrowUp) {
-                key_press = "UP";
+                if (rowIdx - 1 >= 0) {
+                    char point = this->mapData[rowIdx - 1][colIdx];
+
+                    if (point != '|' && point != '-')
+                        player_y -= 4;
+
+                    if (point == '.') {
+                        player_score += 5;
+                        this->mapData[rowIdx][colIdx] = ' ';
+                        movement.push_back({rowIdx, colIdx});
+                    }
+                }
                 return true;
             }
         }
@@ -110,13 +199,45 @@ void UI::displayGameMap(vector<string> mapLines)
     });
 
     // render the canvas in a window
-    canvas_component |= ftxui::Renderer([&](ftxui::Element inner) {
+    this->canvas |= ftxui::Renderer([&](ftxui::Element inner) {
         return ftxui::window(ftxui::text("Pac-Man-[kinda]") | ftxui::hcenter,
-                             ftxui::vbox({
-                                 inner,
-                                 ftxui::text(key_press),
-                             }));
+                             ftxui::vbox({inner}));
     });
 
-    this->screen.Loop(canvas_component);
+    this->screen.Loop(this->canvas);
+}
+
+void UI::setGameMap(vector<string> map)
+{
+    this->mapData = map;
+}
+
+int UI::getScore()
+{
+    return player_score;
+}
+
+vector<std::pair<int, int>> UI::getMovements()
+{
+    // clear the list sense they've been handled
+    auto moves = this->movement;
+    this->movement.clear();
+
+    return moves;
+}
+
+void UI::setOpponentPosition(int x, int y)
+{
+    opponent_x = x;
+    opponent_y = y;
+}
+
+void UI::setOpponentScore(int score)
+{
+    opponent_score = score;
+}
+
+std::pair<int, int> UI::getPosition()
+{
+    return std::make_pair(player_x, player_y);
 }

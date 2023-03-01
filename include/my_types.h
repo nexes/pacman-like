@@ -21,7 +21,7 @@ namespace SerializeInfo {
 
 namespace ServerInfo {
     // the number of connections allowed, passed to listen()
-    const int back_log = 25;
+    const int back_log = 50;
 
     // the server port number, default 8080
     static std::string server_port = "8080";
