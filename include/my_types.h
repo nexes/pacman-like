@@ -4,6 +4,8 @@
 // to change it can be changed here
 #include <string>
 
+using Position = std::pair<int, int>;
+
 namespace RequestType {
     // request types from client to server
     const int NewPlayer = 0;
