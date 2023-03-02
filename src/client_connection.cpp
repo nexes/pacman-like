@@ -1,4 +1,5 @@
 #include "../include/client_connection.h"
+#include "../include/serializer.h"
 
 #include <netdb.h>
 #include <string.h>
@@ -9,9 +10,7 @@
 #include <iostream>
 #include <thread>
 
-#include "../include/serializer.h"
-
-ClientConnection::ClientConnection() : listening(false), err_msg("")
+ClientConnection::ClientConnection() : listening(false), hasUpdate(false), err_msg("")
 {
 }
 
@@ -90,15 +89,13 @@ bool ClientConnection::requestNewPlayer(std::string playername)
     int sent = 0;
 
     // serialize the send request data;
-    SerializedData player_data = Serializer::SerializeNewPlayerRequest(playername);
+    SerializedData player = Serializer::SerializeNewPlayerRequest(playername);
 
     // send the newplayer request to the server
     do {
         {
             std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
-            wrote = write(this->thread_data.socket_fd,
-                          (void *)player_data.data,
-                          player_data.len);
+            wrote = write(this->thread_data.socket_fd, (void *)player.data, player.len);
         }  // unlock critical section here
 
         if (wrote == -1) {
@@ -106,7 +103,34 @@ bool ClientConnection::requestNewPlayer(std::string playername)
             return false;
         }
         sent += wrote;
-    } while (sent != player_data.len);
+    } while (sent != player.len);
+
+    return true;
+}
+
+bool ClientConnection::requestUpdatePlayer(int score,
+                                           Position pos,
+                                           std::vector<Position> visited)
+{
+    int wrote = 0;
+    int len = 0;
+    int sent = 0;
+
+    SerializedData update = Serializer::SerializePlayerUpdateRequest(score, pos, visited);
+
+    // send the newplayer request to the server
+    do {
+        {
+            std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
+            wrote = write(this->thread_data.socket_fd, (void *)update.data, update.len);
+        }  // unlock critical section here
+
+        if (wrote == -1) {
+            err_msg = std::string("UpdatePlayer request: ").append(strerror(wrote));
+            return false;
+        }
+        sent += wrote;
+    } while (sent != update.len);
 
     return true;
 }
@@ -114,10 +138,14 @@ bool ClientConnection::requestNewPlayer(std::string playername)
 void ClientConnection::thread_listenToServer()
 {
     while (listening) {
+        int r = 0;
         char response[ServerInfo::player_read_size];
 
         // get the response if there is any
-        int r = read(this->thread_data.socket_fd, (void *)response, sizeof(response));
+        {
+            std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
+            r = read(this->thread_data.socket_fd, (void *)response, sizeof(response));
+        }
 
         // no response yet
         if (r < 1) {
@@ -125,26 +153,35 @@ void ClientConnection::thread_listenToServer()
             continue;
         }
 
+        DeSerializedData playerData;
         int type = *(int *)response;
 
         switch (type) {
         case RequestType::NewPlayer: {
-            NewPlayerData newPlayer = Serializer::DeSerializeNewPlayerResponse(response);
+            playerData = Serializer::DeSerializeNewPlayerResponse(response);
 
             std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
-            this->thread_data.client_id = newPlayer.userID;
-            this->thread_data.client_map = newPlayer.map;
-            this->thread_data.opponent = newPlayer.has_opponent;
+            this->thread_data.client_id = playerData.userID;
+            this->thread_data.client_map = playerData.map;
+            this->thread_data.opponent = playerData.has_opponent;
 
             break;
         }
         case RequestType::NewOpponent: {
+            playerData = Serializer::DeSerializeNewOpponentResponse(response);
             std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
             this->thread_data.opponent = true;
+            this->isPlayer2 = playerData.isPlayer2;
             break;
         }
-        case RequestType::UpdatePlayer:
+        case RequestType::UpdatePlayer: {
+            this->hasUpdate = true;
+            playerData = Serializer::DeSerializeUpdatePlayerResponse(response);
+            oppData.score = playerData.score;
+            oppData.pos = playerData.opponent_pos;
+            oppData.visited = playerData.visited;
             break;
+        }
         case RequestType::DisconnectPlayer:
             break;
         }
@@ -179,4 +216,20 @@ bool ClientConnection::hasOpponent()
     }
 
     return op;
+}
+
+bool ClientConnection::recievedOpponentUpdate()
+{
+    return hasUpdate;
+}
+
+OpponentData ClientConnection::getOpponentData()
+{
+    hasUpdate = false;
+    return oppData;
+}
+
+bool ClientConnection::getPlayer2()
+{
+    return isPlayer2;
 }
