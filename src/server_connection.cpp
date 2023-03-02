@@ -1,3 +1,4 @@
+#include "../include/serializer.h"
 #include "../include/server_connection.h"
 
 #include <netdb.h>
@@ -9,9 +10,6 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
-
-#include "../include/my_types.h"
-#include "../include/serializer.h"
 
 ServerConnection::ServerConnection() : socket_fd(-1), err_msg(""), thread_data()
 {
@@ -144,16 +142,11 @@ void ServerConnection::waitForPlayer()
 void ServerConnection::thread_handleConnection(int player_socket)
 {
     bool playing = true;
-    int opponent_fd = -1;
+    int opponent_fd;
     std::string player_name;
     char p1_data[ServerInfo::player_read_size];
 
     while (playing) {
-        {
-            std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
-            opponent_fd = this->thread_data.client_pairs[player_socket];
-        }  // critical section unlocks here
-
         int p1_read = read(player_socket, (void *)p1_data, sizeof(p1_data));
         if (p1_read == -1) {
             std::cerr << "Error reading player 1 " << strerror(p1_read) << "\n";
@@ -165,27 +158,44 @@ void ServerConnection::thread_handleConnection(int player_socket)
             continue;
         }
 
-        // parse and handle player 1 request
+        // parse and handle player requests
         if (p1_read > 0) {
             int *p = (int *)p1_data;
             int type = *p;  // first 4 bytes is always the type
 
             switch (type) {
             case RequestType::NewPlayer: {
-                NewPlayerData p = Serializer::DeSerializeNewPlayerRequest(p1_data);
+                DeSerializedData p = Serializer::DeSerializeNewPlayerRequest(p1_data);
                 player_name = p.playername;
                 thread_newPlayerRequest(player_socket);
 
-                if (opponent_fd != -1) {
+                {  // lock and check if we have an opponent
                     std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
-                    thread_newOpponentRequest(player_socket);
-                    thread_newOpponentRequest(opponent_fd);
+                    opponent_fd = this->thread_data.client_pairs[player_socket];
+                }
+
+                if (opponent_fd != -1) {
+                    thread_newOpponentRequest(player_socket, false);
+                    thread_newOpponentRequest(opponent_fd, true);
                 }
                 break;
             }
             case RequestType::DisconnectPlayer:
                 break;
             case RequestType::UpdatePlayer:
+                DeSerializedData p = Serializer::DeSerializeUpdatePlayerResponse(p1_data);
+
+                {  // lock and get our opponents socket fd
+                    std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
+                    opponent_fd = this->thread_data.client_pairs[player_socket];
+                }
+
+                if (opponent_fd != -1) {
+                    thread_updatePlayerRequest(opponent_fd,
+                                               p.score,
+                                               p.opponent_pos,
+                                               p.visited);
+                }
                 break;
             };
         }
@@ -209,7 +219,7 @@ void ServerConnection::thread_newPlayerRequest(int socket)
         int s = write(socket, (void *)d.data, len);
         if (s == -1) {
             // TODO: error handle
-            std::cerr << "Error sending " << strerror(s) << "\n";
+            std::cerr << "Error New Player Request sending " << strerror(s) << "\n";
             break;
         }
 
@@ -218,9 +228,11 @@ void ServerConnection::thread_newPlayerRequest(int socket)
 }
 
 // tell the other player that an opponent has been found
-void ServerConnection::thread_newOpponentRequest(int player_socket)
+void ServerConnection::thread_newOpponentRequest(int player_socket, bool isPlayer2)
 {
-    SerializedData d = Serializer::SerializeNewOpponentResponse(player_socket);
+    int p2 = isPlayer2 ? 1 : 0;
+
+    SerializedData d = Serializer::SerializeNewOpponentResponse(player_socket, p2);
 
     int len = d.len;
     int sent = 0;
@@ -229,7 +241,30 @@ void ServerConnection::thread_newOpponentRequest(int player_socket)
         int s = write(player_socket, (void *)d.data, len);
         if (s == -1) {
             // TODO: error handle
-            std::cerr << "Error sending " << strerror(s) << "\n";
+            std::cerr << "Error New Opponent Request sending " << strerror(s) << "\n";
+            break;
+        }
+
+        sent += s;
+    } while (sent != len);
+}
+
+void ServerConnection::thread_updatePlayerRequest(int socket,
+                                                  int score,
+                                                  Position pos,
+                                                  std::vector<Position> visited)
+{
+    SerializedData d = Serializer::SerializePlayerUpdateRequest(score, pos, visited);
+
+    int len = d.len;
+    int sent = 0;
+
+    do {
+        int s = write(socket, (void *)d.data, len);
+        if (s == -1) {
+            // TODO: error handle
+            std::cerr << "Error Sending Update Player Request " << gai_strerror(s)
+                      << "\n";
             break;
         }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../include/my_types.h"
+
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -46,20 +48,23 @@ private:
         std::unordered_map<int, int> client_pairs;
     };
 
-    // handle a new connection ( a new player )
+    // handle a new connection
     void thread_handleConnection(int);
 
     // handle the new player request
     void thread_newPlayerRequest(int);
 
     // handle and new opponent found for player one
-    void thread_newOpponentRequest(int);
+    void thread_newOpponentRequest(int socket, bool isPlayer2);
 
     // handle the player disconnect request
     void thread_disconnectPlayerRequest();
 
     // handle a player update request
-    void thread_updatePlayerRequest();
+    void thread_updatePlayerRequest(int socket,
+                                    int score,
+                                    Position pos,
+                                    std::vector<Position> visited);
 
 private:
     // the server file descriptor
