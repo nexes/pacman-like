@@ -1,5 +1,7 @@
 #include "../include/serializer.h"
 
+#include <iostream>
+
 // serialize the new player request
 // NewPlayer format {
 //     Type: int
@@ -26,19 +28,64 @@ SerializedData Serializer::SerializeNewPlayerRequest(string playername)
     return d;
 }
 
-// serialzie the new opponet response
-// NewOpponent response format {
-//      Type: int
-//      ID:   int (players unique id)
+// serialize the player update request
+// UpdatePlayer format {
+//      Type:    int      (type)
+//      Score:   int      (payer score)
+//      Pos row: int      (player row position)
+//      Pos col  int      (player col position)
+//      Len:     int      (number of Visited)
+//      Visited: int[x,y] (player visited positons)
 // }
-SerializedData Serializer::SerializeNewOpponentResponse(int socket)
+SerializedData Serializer::SerializePlayerUpdateRequest(int score,
+                                                        Position pos,
+                                                        vector<Position> visited)
 {
     SerializedData d;
     int *ptr = (int *)d.data;
-    *ptr++ = RequestType::NewOpponent;
-    *ptr = socket;
 
-    d.len = sizeof(int) * 2;
+    // type
+    *ptr++ = RequestType::UpdatePlayer;
+
+    // score
+    *ptr++ = score;
+
+    // position row
+    *ptr++ = pos.first;
+
+    // position col
+    *ptr++ = pos.second;
+
+    // visited nodes
+    int len = visited.size();
+    *ptr++ = len;
+
+    for (const Position &p : visited) {
+        *ptr++ = p.first;   // visited x
+        *ptr++ = p.second;  // visited y
+    }
+
+    d.len = sizeof(int) * 5 + (len * 2 * sizeof(int));
+
+    return d;
+}
+
+// serialzie the new opponet response
+// NewOpponent response format {
+//      Type:   int
+//      ID:     int (players unique id)
+//      playe2: int (if this is player 2)
+// }
+SerializedData Serializer::SerializeNewOpponentResponse(int socket, int isPlayer2)
+{
+    SerializedData d;
+    int *ptr = (int *)d.data;
+
+    *ptr++ = RequestType::NewOpponent;
+    *ptr++ = socket;
+    *ptr = isPlayer2;
+
+    d.len = sizeof(int) * 3;
     return d;
 }
 
@@ -57,10 +104,8 @@ SerializedData Serializer::SerializeNewPlayerResponse(int id, vector<string> &ma
 
     // Type
     *int_ptr++ = RequestType::NewPlayer;
-
     // ID
     *int_ptr++ = id;
-
     // OP
     *int_ptr++ = 0;
 
@@ -87,9 +132,9 @@ SerializedData Serializer::SerializeNewPlayerResponse(int id, vector<string> &ma
     return d;
 }
 
-NewPlayerData Serializer::DeSerializeNewPlayerResponse(const char data[])
+DeSerializedData Serializer::DeSerializeNewPlayerResponse(const char data[])
 {
-    NewPlayerData d;
+    DeSerializedData d;
     int *ptr = (int *)data;
 
     d.responseType = *ptr++;
@@ -113,9 +158,9 @@ NewPlayerData Serializer::DeSerializeNewPlayerResponse(const char data[])
     return d;
 }
 
-NewPlayerData Serializer::DeSerializeNewPlayerRequest(const char data[])
+DeSerializedData Serializer::DeSerializeNewPlayerRequest(const char data[])
 {
-    NewPlayerData d;
+    DeSerializedData d;
 
     int *ptr = (int *)data;
     d.responseType = *ptr++;
@@ -123,6 +168,42 @@ NewPlayerData Serializer::DeSerializeNewPlayerRequest(const char data[])
     char *c_ptr = (char *)ptr;
     while (*c_ptr != '%')
         d.playername.push_back(*c_ptr++);
+
+    return d;
+}
+
+DeSerializedData Serializer::DeSerializeUpdatePlayerResponse(const char data[])
+{
+    DeSerializedData d;
+    int *ptr = (int *)data;
+
+    d.responseType = *ptr++;
+    d.score = *ptr++;
+    d.opponent_pos.first = *ptr++;
+    d.opponent_pos.second = *ptr++;
+    d.len = *ptr++;
+
+    int x;
+    int y;
+
+    for (int i = 0; i < d.len; i++) {
+        x = *ptr++;
+        y = *ptr++;
+
+        d.visited.push_back({x, y});
+    }
+
+    return d;
+}
+
+DeSerializedData Serializer::DeSerializeNewOpponentResponse(const char data[])
+{
+    DeSerializedData d;
+    int *ptr = (int *)data;
+
+    d.responseType = *ptr++;
+    d.userID = *ptr++;
+    d.isPlayer2 = *ptr;
 
     return d;
 }
