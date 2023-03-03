@@ -23,6 +23,8 @@ ServerConnection::~ServerConnection()
     close(this->socket_fd);
 }
 
+// this gets called from the Server binary. A map is read from a txt file and passed into
+// here. This will be servered on newPlayerRequests
 void ServerConnection::setGameMap(std::vector<std::string> map)
 {
     // TODO:
@@ -142,7 +144,6 @@ void ServerConnection::waitForPlayer()
 void ServerConnection::thread_handleConnection(int player_socket)
 {
     bool playing = true;
-    int opponent_fd;
     std::string player_name;
     char p1_data[ServerInfo::player_read_size];
 
@@ -160,8 +161,9 @@ void ServerConnection::thread_handleConnection(int player_socket)
 
         // parse and handle player requests
         if (p1_read > 0) {
+            int opponent_fd;
             int *p = (int *)p1_data;
-            int type = *p;  // first 4 bytes is always the type
+            int type = *p;  // first 4 bytes is always the request type
 
             switch (type) {
             case RequestType::NewPlayer: {
@@ -175,8 +177,8 @@ void ServerConnection::thread_handleConnection(int player_socket)
                 }
 
                 if (opponent_fd != -1) {
-                    thread_newOpponentRequest(player_socket, false);
-                    thread_newOpponentRequest(opponent_fd, true);
+                    thread_newOpponentRequest(player_socket, true);
+                    thread_newOpponentRequest(opponent_fd, false);
                 }
                 break;
             }
