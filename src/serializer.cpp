@@ -72,20 +72,32 @@ SerializedData Serializer::SerializePlayerUpdateRequest(int score,
 
 // serialzie the new opponet response
 // NewOpponent response format {
-//      Type:   int
-//      ID:     int (players unique id)
-//      playe2: int (if this is player 2)
+//      Type:    int
+//      ID:      int (players unique id)
+//      Player2: int (if this is player 2)
+//      len:     int (length of the player name)
+//      Name:    string (the other players name)
 // }
-SerializedData Serializer::SerializeNewOpponentResponse(int socket, int isPlayer2)
+SerializedData Serializer::SerializeNewOpponentResponse(int socket,
+                                                        int isPlayer2,
+                                                        string name)
 {
     SerializedData d;
     int *ptr = (int *)d.data;
 
     *ptr++ = RequestType::NewOpponent;
     *ptr++ = socket;
-    *ptr = isPlayer2;
+    *ptr++ = isPlayer2;
 
-    d.len = sizeof(int) * 3;
+    int len = name.length();
+    *ptr++ = len;
+
+    char *c_ptr = (char *)ptr;
+
+    for (int i = 0; i < len; i++)
+        *c_ptr++ = name[i];
+
+    d.len = sizeof(int) * 4 + (sizeof(char) * len);
     return d;
 }
 
@@ -203,7 +215,13 @@ DeSerializedData Serializer::DeSerializeNewOpponentResponse(const char data[])
 
     d.responseType = *ptr++;
     d.userID = *ptr++;
-    d.isPlayer2 = *ptr;
+    d.isPlayer2 = *ptr++;
+
+    int len = *ptr++;
+
+    char *c_ptr = (char *)ptr;
+    for (int i = 0; i < len; i++)
+        d.playername.push_back(*c_ptr++);
 
     return d;
 }

@@ -63,7 +63,9 @@ public:
                                                        vector<Position> visited);
 
     // serialize a new opponent request to send to the client
-    static SerializedData SerializeNewOpponentResponse(int socket, int isPlayer2);
+    static SerializedData SerializeNewOpponentResponse(int socket,
+                                                       int isPlayer2,
+                                                       string name);
 
     // serialize the new player response to send to the client
     static SerializedData SerializeNewPlayerResponse(int id, vector<string> &map);
