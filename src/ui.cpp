@@ -104,8 +104,9 @@ void UI::setupUserInput()
                         player_y += 4;
 
                     if (point == '.') {
+                        std::lock_guard<std::mutex> lock(this->mutex);
+
                         this->player_score += 5;
-                        // my_score += 5;
                         this->mapData[rowIdx][colIdx] = ' ';
                         movement.push_back({rowIdx, colIdx});
                     }
@@ -121,8 +122,9 @@ void UI::setupUserInput()
                         player_x -= 2;
 
                     if (point == '.') {
+                        std::lock_guard<std::mutex> lock(this->mutex);
+
                         this->player_score += 5;
-                        // my_score += 5;
                         this->mapData[rowIdx][colIdx] = ' ';
                         movement.push_back({rowIdx, colIdx});
                     }
@@ -141,6 +143,8 @@ void UI::setupUserInput()
                         player_x += 2;
 
                     if (point == '.') {
+                        std::lock_guard<std::mutex> lock(this->mutex);
+
                         this->player_score += 5;
                         this->mapData[rowIdx][colIdx] = ' ';
                         movement.push_back({rowIdx, colIdx});
@@ -157,6 +161,8 @@ void UI::setupUserInput()
                         player_y -= 4;
 
                     if (point == '.') {
+                        std::lock_guard<std::mutex> lock(this->mutex);
+
                         this->player_score += 5;
                         this->mapData[rowIdx][colIdx] = ' ';
                         movement.push_back({rowIdx, colIdx});
@@ -267,6 +273,7 @@ int UI::getScore()
 
 vector<std::pair<int, int>> UI::getMovements()
 {
+    std::lock_guard<std::mutex> lock(this->mutex);
     return this->movement;
 }
 

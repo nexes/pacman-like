@@ -8,6 +8,7 @@
 
 #include <string>
 #include <vector>
+#include <mutex>
 
 using std::string;
 using std::vector;
@@ -51,6 +52,7 @@ private:
     void setupUserInput();
 
 private:
+    std::mutex mutex;
     bool show_userinput;
     bool show_map;
     bool isPlayer2;
