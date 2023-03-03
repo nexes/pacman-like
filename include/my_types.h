@@ -45,7 +45,7 @@ namespace GameInfo {
     // width of the canvas (where to map is drawn)
     const int CanvasWidth = 180;
     // height of the canvas (where to map is drawn)
-    const int CanvasHeight = 100;
+    const int CanvasHeight = 80;
     // sleep the thread for 50 ms (~20fps)
     const int ThreadSleep = 50;
 }  // namespace GameInfo
