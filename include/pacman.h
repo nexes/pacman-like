@@ -1,9 +1,9 @@
 #pragma once
 
-#include <string>
-
 #include "client_connection.h"
 #include "ui.h"
+
+#include <string>
 
 class Pacman
 {
@@ -24,9 +24,17 @@ public:
 private:
     // this players username
     std::string username;
+    // player 2's username
+    std::string opponent_name;
+
     // this controls our main loop
     bool playing;
-    // the UI class FTXUI
+    // our players score
+    int player_score;
+    // opponents score
+    int opponent_score;
+
+    // the UI class
     UI ui;
     // handle all connections to/from the server
     ClientConnection connection;

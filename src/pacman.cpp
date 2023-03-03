@@ -1,14 +1,14 @@
 #include "../include/pacman.h"
+#include "../include/my_types.h"
+
+#include <ftxui/component/loop.hpp>
 
 #include <chrono>
 #include <iostream>
 #include <thread>
 #include <vector>
 
-#include "../include/my_types.h"
-#include "../include/serializer.h"
-
-Pacman::Pacman() : username("Player"), playing(true)
+Pacman::Pacman() : username("Player"), opponent_name(""), playing(true), player_score(0)
 {
 }
 
@@ -42,22 +42,48 @@ bool Pacman::setupNetwork()
 
 void Pacman::run()
 {
-    std::cout << "Waiting for player 2...\n";
     bool show_map = false;
+    std::vector<Position> visited;
 
-    // TODO: delete this, just for testing
-    std::vector<std::string> t;
-    bool tt = false;
-    while (!show_map) {
-        tt = this->connection.hasOpponent();
-        if (tt) {
-            show_map = true;
-        } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    std::cout << "Waiting for player 2...\n";
+
+    // wait until player 2 connects to show the map
+    while (!this->connection.hasOpponent())
+        std::this_thread::sleep_for(std::chrono::milliseconds(GameInfo::ThreadSleep));
+
+    // get the map from the server
+    std::vector<std::string> map = this->connection.getGameMap();
+
+    // give the map to the UI and set if this player is the second player
+    this->ui.setGameMap(map, this->connection.isPlayer2());
+
+    // display the game map and return the game loop object (FTXUI component)
+    ftxui::Loop loop = this->ui.getGameLoop();
+
+    // the main game loop
+    while (playing) {
+        // get our opponents data
+        if (this->connection.recievedOpponentUpdate()) {
+            OpponentData op = this->connection.getOpponentData();
+
+            this->opponent_score = op.score;
+            this->ui.setOpponentScore(op.score);
+            this->ui.setOpponentPosition(op.pos.first, op.pos.second);
+            this->ui.updateMap(op.visited);
         }
+
+        // send our players updated data
+        int score = this->ui.getScore();
+        Position current = this->ui.getPosition();
+        visited = this->ui.getMovements();
+
+        // TODO: remove the visited cells we've already updated. send less data
+        if (!this->connection.requestUpdatePlayer(score, current, visited))
+            std::cerr << "error sending update\n";
+
+        loop.RunOnce();
+        std::this_thread::sleep_for(std::chrono::milliseconds(GameInfo::ThreadSleep));
     }
-    t = this->connection.getGameMap();
-    this->ui.displayGameMap(t);
 
     std::cout << "Thank you for playing!\n";
 }
