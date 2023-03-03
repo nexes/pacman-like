@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+// data struct to hold opponents info on playerUpdate responses
 struct OpponentData
 {
     // opponent score
@@ -52,37 +53,41 @@ public:
     bool hasOpponent();
 
     // return true if this player is the second player
-    bool getPlayer2();
+    bool isPlayer2();
 
 private:
     struct CriticalSection
     {
         // mutex to lock when writing data
         std::mutex thread_mutex;
-        // socket to the server we listen on a second thread
+
+        // socket to the server I lock this because we write to it from the main thread
+        // and read from it on a second thread
         int socket_fd;
-        // if this player has an opponent
-        bool opponent;
-        // unique client id from the server
-        int client_id;
-        // client map
-        std::vector<std::string> client_map;
+
+        // data of our opponent. This gets updated constantly so I lock it when it's
+        // changing
+        OpponentData oppData;
     };
 
     // listen on a second thread for server responses
     void thread_listenToServer();
 
 private:
+    // unique client id from the server
+    int client_id;
     // listening to the server
     bool listening;
+    // if this player has an opponent
+    bool opponent;
     // true if we've received an update from the opponent
     bool hasUpdate;
     // is this player the second player
-    bool isPlayer2;
-    // data on our opponent
-    OpponentData oppData;
+    bool player2;
     // error message if there are any
     std::string err_msg;
+    // client map
+    std::vector<std::string> client_map;
     // shared data between threads
     CriticalSection thread_data;
 };

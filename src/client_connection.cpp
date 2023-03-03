@@ -135,6 +135,7 @@ bool ClientConnection::requestUpdatePlayer(int score,
     return true;
 }
 
+// a second thread that will keep listening to server traffic.
 void ClientConnection::thread_listenToServer()
 {
     while (listening) {
@@ -160,26 +161,31 @@ void ClientConnection::thread_listenToServer()
         case RequestType::NewPlayer: {
             playerData = Serializer::DeSerializeNewPlayerResponse(response);
 
-            std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
-            this->thread_data.client_id = playerData.userID;
-            this->thread_data.client_map = playerData.map;
-            this->thread_data.opponent = playerData.has_opponent;
+            this->client_id = playerData.userID;
+            this->client_map = playerData.map;
+            this->opponent = playerData.has_opponent;
 
             break;
         }
         case RequestType::NewOpponent: {
             playerData = Serializer::DeSerializeNewOpponentResponse(response);
-            std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
-            this->thread_data.opponent = true;
-            this->isPlayer2 = playerData.isPlayer2;
+
+            this->opponent = true;
+            this->player2 = playerData.isPlayer2;
             break;
         }
         case RequestType::UpdatePlayer: {
-            this->hasUpdate = true;
             playerData = Serializer::DeSerializeUpdatePlayerResponse(response);
-            oppData.score = playerData.score;
-            oppData.pos = playerData.opponent_pos;
-            oppData.visited = playerData.visited;
+
+            // updating player data can read/write from both threads mutliple times so
+            // I lock this response
+            {
+                std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
+                this->hasUpdate = true;
+                this->thread_data.oppData.score = playerData.score;
+                this->thread_data.oppData.pos = playerData.opponent_pos;
+                this->thread_data.oppData.visited = playerData.visited;
+            }
             break;
         }
         case RequestType::DisconnectPlayer:
@@ -198,24 +204,12 @@ std::string ClientConnection::getErrorMsg()
 
 std::vector<std::string> ClientConnection::getGameMap()
 {
-    std::vector<std::string> map;
-    {
-        std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
-        map = this->thread_data.client_map;
-    }
-
-    return map;
+    return this->client_map;
 }
 
 bool ClientConnection::hasOpponent()
 {
-    bool op = false;
-    {
-        std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
-        op = this->thread_data.opponent;
-    }
-
-    return op;
+    return this->opponent;
 }
 
 bool ClientConnection::recievedOpponentUpdate()
@@ -225,11 +219,13 @@ bool ClientConnection::recievedOpponentUpdate()
 
 OpponentData ClientConnection::getOpponentData()
 {
+    std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
     hasUpdate = false;
-    return oppData;
+
+    return this->thread_data.oppData;
 }
 
-bool ClientConnection::getPlayer2()
+bool ClientConnection::isPlayer2()
 {
-    return isPlayer2;
+    return player2;
 }
