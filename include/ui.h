@@ -1,10 +1,13 @@
 #pragma once
 
-#include <string>
-#include <vector>
+#include "../include/my_types.h"
 
 #include <ftxui/component/component.hpp>
+#include <ftxui/component/loop.hpp>
 #include <ftxui/component/screen_interactive.hpp>
+
+#include <string>
+#include <vector>
 
 using std::string;
 using std::vector;
@@ -20,31 +23,37 @@ public:
     string displayGetUserName();
 
     // give the map to the UI. This needs to be called before displayGameMap()
-    void setGameMap(vector<string>);
+    void setGameMap(vector<string> map, bool player2);
 
-    // display the game map the server sent
-    void displayGameMap();
+    // return the FTXUI game loop object to 'step' the game loop
+    ftxui::Loop getGameLoop();
+
+    // update the map to reflect player movement removing 'coins'
+    void updateMap(vector<Position> visited);
 
     // get the current player score
     int getScore();
 
     // get the players position
-    std::pair<int, int> getPosition();
+    Position getPosition();
 
     // update where the opponent is at on the map
-    void setOpponentPosition(int, int);
+    void setOpponentPosition(int x, int y);
 
     // update the opponents score
-    void setOpponentScore(int);
+    void setOpponentScore(int score);
 
-    // get the current player movement history. When called this will return a list of (x,
-    // y) cords the player has moved to. This will clear the movement list each time its
-    // called
-    vector<std::pair<int, int>> getMovements();
+    // get the current player movement history.
+    vector<Position> getMovements();
+
+private:
+    void setupCanvas();
+    void setupUserInput();
 
 private:
     bool show_userinput;
     bool show_map;
+    bool isPlayer2;
     string user_name;
 
     // player 1's position
@@ -58,7 +67,7 @@ private:
     int opponent_score;
 
     vector<string> mapData;
-    vector<std::pair<int, int>> movement;
+    vector<Position> movement;
 
     ftxui::Component canvas;
     ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();

@@ -1,4 +1,3 @@
-#include "../include/my_types.h"
 #include "../include/ui.h"
 
 #include <ftxui/component/component.hpp>
@@ -54,7 +53,127 @@ string UI::displayGetUserName()
     return this->user_name;
 }
 
-void UI::displayGameMap()
+// render the final canvas and return the game loop
+ftxui::Loop UI::getGameLoop()
+{
+    // render the canvas in a window
+    this->canvas |= ftxui::Renderer([&](ftxui::Element inner) {
+        return ftxui::window(
+            ftxui::text("Pac-Man-[kinda]") | ftxui::hcenter,
+            ftxui::hbox({inner,
+                         ftxui::vbox({
+                             ftxui::text("score " + std::to_string(this->player_score)),
+                             ftxui::text("op " + std::to_string(this->opponent_score)),
+                         }) | ftxui::border |
+                             ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, 10)}));
+    });
+
+    ftxui::Loop loop(&this->screen, this->canvas);
+    return loop;
+}
+
+// setup the canvas and userinput. this needs to be called before getGameLoop is called
+void UI::setGameMap(vector<string> map, bool player2)
+{
+    this->mapData = map;
+    this->isPlayer2 = player2;
+
+    this->setupCanvas();
+    this->setupUserInput();
+}
+
+// this captures keyboard input on the canvas component
+void UI::setupUserInput()
+{
+    // capture keyboard events on the canvas component
+    this->canvas |= ftxui::CatchEvent([&](ftxui::Event event) {
+        if (event == ftxui::Event::Custom) {
+        }
+
+        if (!event.is_mouse()) {
+            int rowSize = this->mapData.size();
+            int colIdx = player_x / 2;
+            int rowIdx = player_y / 4;
+
+            // handle player moving down
+            if (event == ftxui::Event::ArrowDown) {
+                if (rowIdx + 1 < rowSize) {
+                    char point = this->mapData[rowIdx + 1][colIdx];
+
+                    if (point != '|' && point != '-')
+                        player_y += 4;
+
+                    if (point == '.') {
+                        this->player_score += 5;
+                        // my_score += 5;
+                        this->mapData[rowIdx][colIdx] = ' ';
+                        movement.push_back({rowIdx, colIdx});
+                    }
+                }
+                return true;
+
+                // handle player moving left
+            } else if (event == ftxui::Event::ArrowLeft) {
+                if (colIdx - 1 >= 0) {
+                    char point = this->mapData[rowIdx][colIdx - 1];
+
+                    if (point != '|' && point != '-')
+                        player_x -= 2;
+
+                    if (point == '.') {
+                        this->player_score += 5;
+                        // my_score += 5;
+                        this->mapData[rowIdx][colIdx] = ' ';
+                        movement.push_back({rowIdx, colIdx});
+                    }
+                }
+                return true;
+
+                // handle player moving right
+            } else if (event == ftxui::Event::ArrowRight) {
+                // each line (row) can have a different size
+                int colSize = this->mapData[rowIdx].size();
+
+                if (colIdx + 1 < colSize) {
+                    char point = this->mapData[rowIdx][colIdx + 1];
+
+                    if (point != '|' && point != '-')
+                        player_x += 2;
+
+                    if (point == '.') {
+                        this->player_score += 5;
+                        this->mapData[rowIdx][colIdx] = ' ';
+                        movement.push_back({rowIdx, colIdx});
+                    }
+                }
+                return true;
+
+                // handle player moving up
+            } else if (event == ftxui::Event::ArrowUp) {
+                if (rowIdx - 1 >= 0) {
+                    char point = this->mapData[rowIdx - 1][colIdx];
+
+                    if (point != '|' && point != '-')
+                        player_y -= 4;
+
+                    if (point == '.') {
+                        this->player_score += 5;
+                        this->mapData[rowIdx][colIdx] = ' ';
+                        movement.push_back({rowIdx, colIdx});
+                    }
+                }
+                return true;
+            }
+        }
+
+        // return false so the event keeps bubbling up
+        return false;
+    });
+}
+
+// this functions sets up a ftxui canvas. this is the component the map and players are
+// drawn to
+void UI::setupCanvas()
 {
     // create a canvas component that will display the pac-man map
     this->canvas = ftxui::Renderer([&] {
@@ -89,17 +208,32 @@ void UI::displayGameMap()
                 }
                 case 'X':
                     // get the initial position of player 1
-                    if (player_x == -1)
-                        player_x = x;
-                    if (player_y == -1)
-                        player_y = y;
+                    if (!isPlayer2) {
+                        if (player_x == -1)
+                            player_x = x;
+                        if (player_y == -1)
+                            player_y = y;
+                    } else {
+                        if (opponent_x == -1)
+                            opponent_x = x;
+                        if (opponent_y == -1)
+                            opponent_y = y;
+                    }
+
                     break;
                 case 'Y':
                     // get the initial position of player 2
-                    if (opponent_x == -1)
-                        opponent_x = x;
-                    if (opponent_y == -1)
-                        opponent_y = y;
+                    if (isPlayer2) {
+                        if (player_x == -1)
+                            player_x = x;
+                        if (player_y == -1)
+                            player_y = y;
+                    } else {
+                        if (opponent_x == -1)
+                            opponent_x = x;
+                        if (opponent_y == -1)
+                            opponent_y = y;
+                    }
 
                     break;
                 }
@@ -118,123 +252,33 @@ void UI::displayGameMap()
         // returns our canvas as an 'Element'
         return ftxui::canvas(std::move(c));
     });
-
-    // capture keyboard events on the canvas component
-    this->canvas |= ftxui::CatchEvent([&](ftxui::Event event) {
-        if (!event.is_mouse()) {
-            int rowSize = this->mapData.size();
-            int colIdx = player_x / 2;
-            int rowIdx = player_y / 4;
-
-            // handle player moving down
-            if (event == ftxui::Event::ArrowDown) {
-                if (rowIdx + 1 < rowSize) {
-                    char point = this->mapData[rowIdx + 1][colIdx];
-
-                    if (point != '|' && point != '-')
-                        player_y += 4;
-
-                    if (point == '.') {
-                        player_score += 5;
-                        this->mapData[rowIdx][colIdx] = ' ';
-                        movement.push_back({rowIdx, colIdx});
-                    }
-                }
-                return true;
-
-                // handle player moving left
-            } else if (event == ftxui::Event::ArrowLeft) {
-                if (colIdx - 1 >= 0) {
-                    char point = this->mapData[rowIdx][colIdx - 1];
-
-                    if (point != '|' && point != '-')
-                        player_x -= 2;
-
-                    if (point == '.') {
-                        player_score += 5;
-                        this->mapData[rowIdx][colIdx] = ' ';
-                        movement.push_back({rowIdx, colIdx});
-                    }
-                }
-                return true;
-
-                // handle player moving right
-            } else if (event == ftxui::Event::ArrowRight) {
-                // each line (row) can have a different size
-                int colSize = this->mapData[rowIdx].size();
-                if (colIdx + 1 < colSize) {
-                    char point = this->mapData[rowIdx][colIdx + 1];
-
-                    if (point != '|' && point != '-')
-                        player_x += 2;
-
-                    if (point == '.') {
-                        player_score += 5;
-                        this->mapData[rowIdx][colIdx] = ' ';
-                        movement.push_back({rowIdx, colIdx});
-                    }
-                }
-                return true;
-
-                // handle player moving up
-            } else if (event == ftxui::Event::ArrowUp) {
-                if (rowIdx - 1 >= 0) {
-                    char point = this->mapData[rowIdx - 1][colIdx];
-
-                    if (point != '|' && point != '-')
-                        player_y -= 4;
-
-                    if (point == '.') {
-                        player_score += 5;
-                        this->mapData[rowIdx][colIdx] = ' ';
-                        movement.push_back({rowIdx, colIdx});
-                    }
-                }
-                return true;
-            }
-        }
-
-        // return false so the event keeps bubbling up
-        return false;
-    });
-
-    // render the canvas in a window
-    this->canvas |= ftxui::Renderer([&](ftxui::Element inner) {
-        return ftxui::window(ftxui::text("Pac-Man-[kinda]") | ftxui::hcenter,
-                             ftxui::vbox({inner}));
-    });
-
-    this->screen.Loop(this->canvas);
 }
 
-void UI::setGameMap(vector<string> map)
+void UI::updateMap(vector<Position> visited)
 {
-    this->mapData = map;
+    for (const Position &pos : visited)
+        mapData[pos.first][pos.second] = ' ';
 }
 
 int UI::getScore()
 {
-    return player_score;
+    return this->player_score;
 }
 
 vector<std::pair<int, int>> UI::getMovements()
 {
-    // clear the list sense they've been handled
-    auto moves = this->movement;
-    this->movement.clear();
-
-    return moves;
+    return this->movement;
 }
 
 void UI::setOpponentPosition(int x, int y)
 {
-    opponent_x = x;
-    opponent_y = y;
+    this->opponent_x = x;
+    this->opponent_y = y;
 }
 
 void UI::setOpponentScore(int score)
 {
-    opponent_score = score;
+    this->opponent_score = score;
 }
 
 std::pair<int, int> UI::getPosition()
