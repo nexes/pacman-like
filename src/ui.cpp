@@ -11,7 +11,8 @@
 UI::UI()
     : show_userinput(true),
       show_map(false),
-      user_name(""),
+      player_name(""),
+      opponent_name(""),
       player_x(-1),
       player_y(-1),
       player_score(0),
@@ -24,7 +25,7 @@ UI::UI()
 string UI::displayGetUserName()
 {
     // setup UI componenets to show user input and an OK button
-    ftxui::Component username_input = ftxui::Input(&this->user_name, "Player Name");
+    ftxui::Component username_input = ftxui::Input(&this->player_name, "Player Name");
     ftxui::Component ok_button = ftxui::Button("Connect", this->screen.ExitLoopClosure());
 
     // size the user input box
@@ -50,7 +51,7 @@ string UI::displayGetUserName()
     });
 
     this->screen.Loop(userinput_container);
-    return this->user_name;
+    return this->player_name;
 }
 
 // render the final canvas and return the game loop
@@ -60,12 +61,21 @@ ftxui::Loop UI::getGameLoop()
     this->canvas |= ftxui::Renderer([&](ftxui::Element inner) {
         return ftxui::window(
             ftxui::text("Pac-Man-[kinda]") | ftxui::hcenter,
-            ftxui::hbox({inner,
-                         ftxui::vbox({
-                             ftxui::text("score " + std::to_string(this->player_score)),
-                             ftxui::text("op " + std::to_string(this->opponent_score)),
-                         }) | ftxui::border |
-                             ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, 10)}));
+            ftxui::vbox({
+                ftxui::text(this->player_name + " - you are the red player"),
+                inner,
+                ftxui::separator(),
+                ftxui::hbox({
+                    ftxui::text(this->player_name + " " +
+                                std::to_string(this->player_score)) |
+                        ftxui::bold,
+                    ftxui::separator(),
+                    ftxui::text(this->opponent_name + " " +
+                                std::to_string(this->opponent_score)) |
+                        ftxui::bold,
+                    ftxui::paragraphAlignRight("Ctrl-c to exit"),
+                }) | ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN, 5),
+            }) | ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, 10));
     });
 
     ftxui::Loop loop(&this->screen, this->canvas);
@@ -73,10 +83,11 @@ ftxui::Loop UI::getGameLoop()
 }
 
 // setup the canvas and userinput. this needs to be called before getGameLoop is called
-void UI::setGameMap(vector<string> map, bool player2)
+void UI::setGameMap(vector<string> map, bool player2, string player2Name)
 {
     this->mapData = map;
     this->isPlayer2 = player2;
+    this->opponent_name = player2Name;
 
     this->setupCanvas();
     this->setupUserInput();

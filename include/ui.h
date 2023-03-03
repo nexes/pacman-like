@@ -3,7 +3,6 @@
 #include "../include/my_types.h"
 
 #include <ftxui/component/component.hpp>
-#include <ftxui/component/loop.hpp>
 #include <ftxui/component/screen_interactive.hpp>
 
 #include <string>
@@ -24,7 +23,7 @@ public:
     string displayGetUserName();
 
     // give the map to the UI. This needs to be called before displayGameMap()
-    void setGameMap(vector<string> map, bool player2);
+    void setGameMap(vector<string> map, bool player2, string player2Name);
 
     // return the FTXUI game loop object to 'step' the game loop
     ftxui::Loop getGameLoop();
@@ -56,7 +55,10 @@ private:
     bool show_userinput;
     bool show_map;
     bool isPlayer2;
-    string user_name;
+
+    // names of the players
+    string player_name;
+    string opponent_name;
 
     // player 1's position
     int player_x;
@@ -68,8 +70,11 @@ private:
     int opponent_y;
     int opponent_score;
 
-    vector<string> mapData;
+    // a history of player movement to send to the server and update the opponent with our
+    // movement
     vector<Position> movement;
+    // the map data
+    vector<string> mapData;
 
     ftxui::Component canvas;
     ftxui::ScreenInteractive screen = ftxui::ScreenInteractive::Fullscreen();
