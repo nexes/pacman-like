@@ -150,7 +150,8 @@ void ServerConnection::thread_handleConnection(int player_socket)
     while (playing) {
         int p1_read = read(player_socket, (void *)p1_data, sizeof(p1_data));
         if (p1_read == -1) {
-            std::cerr << "Error reading player 1 " << strerror(p1_read) << "\n";
+            std::cerr << "Error reading player " << player_socket << strerror(p1_read)
+                      << "\n";
         }
 
         // if nothing was read, sleep and continue
@@ -168,17 +169,28 @@ void ServerConnection::thread_handleConnection(int player_socket)
             switch (type) {
             case RequestType::NewPlayer: {
                 DeSerializedData p = Serializer::DeSerializeNewPlayerRequest(p1_data);
-                player_name = p.playername;
                 thread_newPlayerRequest(player_socket);
 
                 {  // lock and check if we have an opponent
                     std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
+
+                    this->thread_data.player_names[player_socket] = p.playername;
                     opponent_fd = this->thread_data.client_pairs[player_socket];
                 }
 
+                // if this opponent has an opponent (meaning this is player 2) send the
+                // newOpponentRequest with the other players name
                 if (opponent_fd != -1) {
-                    thread_newOpponentRequest(player_socket, true);
-                    thread_newOpponentRequest(opponent_fd, false);
+                    std::string player1_name;
+                    std::string player2_name;
+
+                    {
+                        std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
+                        player1_name = this->thread_data.player_names[opponent_fd];
+                        player2_name = this->thread_data.player_names[player_socket];
+                    }
+                    thread_newOpponentRequest(player_socket, true, player1_name);
+                    thread_newOpponentRequest(opponent_fd, false, player2_name);
                 }
                 break;
             }
@@ -229,12 +241,14 @@ void ServerConnection::thread_newPlayerRequest(int socket)
     } while (sent != len);
 }
 
-// tell the other player that an opponent has been found
-void ServerConnection::thread_newOpponentRequest(int player_socket, bool isPlayer2)
+// tell the other player that an opponent has been found and give them that players name
+void ServerConnection::thread_newOpponentRequest(int player_socket,
+                                                 bool isPlayer2,
+                                                 std::string name)
 {
     int p2 = isPlayer2 ? 1 : 0;
 
-    SerializedData d = Serializer::SerializeNewOpponentResponse(player_socket, p2);
+    SerializedData d = Serializer::SerializeNewOpponentResponse(player_socket, p2, name);
 
     int len = d.len;
     int sent = 0;
@@ -265,8 +279,7 @@ void ServerConnection::thread_updatePlayerRequest(int socket,
         int s = write(socket, (void *)d.data, len);
         if (s == -1) {
             // TODO: error handle
-            std::cerr << "Error Sending Update Player Request " << gai_strerror(s)
-                      << "\n";
+            std::cerr << "Error Sending Update Player Request " << strerror(s) << "\n";
             break;
         }
 

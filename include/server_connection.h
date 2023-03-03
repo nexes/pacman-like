@@ -46,6 +46,10 @@ private:
         // key: the players socket descriptor
         // value: the players opponents socket descriptor.
         std::unordered_map<int, int> client_pairs;
+
+        // map the player name to their socket fd. This is so we can send the name to the
+        // correct opponent
+        std::unordered_map<int, std::string> player_names;
     };
 
     // handle a new connection
@@ -55,7 +59,7 @@ private:
     void thread_newPlayerRequest(int);
 
     // handle and new opponent found for player one
-    void thread_newOpponentRequest(int socket, bool isPlayer2);
+    void thread_newOpponentRequest(int socket, bool isPlayer2, std::string name);
 
     // handle the player disconnect request
     void thread_disconnectPlayerRequest();
