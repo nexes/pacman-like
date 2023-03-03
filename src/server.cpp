@@ -29,7 +29,7 @@ std::vector<std::string> readMapData(std::string map_file)
 int main(int argc, char *argv[])
 {
     ServerConnection connection;
-    connection.setGameMap(readMapData("./Map2.txt"));
+    connection.setGameMap(readMapData("./Map.txt"));
 
     if (!connection.setupConnection()) {
         std::cerr << connection.getErrorMsg();
