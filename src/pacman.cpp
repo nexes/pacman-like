@@ -42,7 +42,7 @@ bool Pacman::setupNetwork()
 
 void Pacman::run()
 {
-    bool show_map = false;
+    bool isPlayer2 = false;
     std::vector<Position> visited;
 
     std::cout << "Waiting for player 2...\n";
@@ -51,16 +51,16 @@ void Pacman::run()
     while (!this->connection.hasOpponent())
         std::this_thread::sleep_for(std::chrono::milliseconds(GameInfo::ThreadSleep));
 
-    // get the map from the server
+    // get the map and player2 name from the server and give it to the UI
     std::vector<std::string> map = this->connection.getGameMap();
+    opponent_name = this->connection.getOpponentName();
+    isPlayer2 = this->connection.isPlayer2();
 
-    // give the map to the UI and set if this player is the second player
-    this->ui.setGameMap(map, this->connection.isPlayer2());
+    this->ui.setGameMap(map, isPlayer2, opponent_name);
 
     // display the game map and return the game loop object (FTXUI component)
     ftxui::Loop loop = this->ui.getGameLoop();
 
-    // the main game loop
     while (playing) {
         // get our opponents data
         if (this->connection.recievedOpponentUpdate()) {
