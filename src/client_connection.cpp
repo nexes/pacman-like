@@ -172,6 +172,7 @@ void ClientConnection::thread_listenToServer()
 
             this->opponent = true;
             this->player2 = playerData.isPlayer2;
+            this->opponent_name = playerData.playername;
             break;
         }
         case RequestType::UpdatePlayer: {
@@ -209,7 +210,7 @@ std::vector<std::string> ClientConnection::getGameMap()
 
 bool ClientConnection::hasOpponent()
 {
-    return this->opponent;
+    return opponent;
 }
 
 bool ClientConnection::recievedOpponentUpdate()
@@ -228,4 +229,9 @@ OpponentData ClientConnection::getOpponentData()
 bool ClientConnection::isPlayer2()
 {
     return player2;
+}
+
+std::string ClientConnection::getOpponentName()
+{
+    return opponent_name;
 }

@@ -55,6 +55,9 @@ public:
     // return true if this player is the second player
     bool isPlayer2();
 
+    // get the opponents name
+    std::string getOpponentName();
+
 private:
     struct CriticalSection
     {
@@ -84,6 +87,8 @@ private:
     bool hasUpdate;
     // is this player the second player
     bool player2;
+    // player2 name
+    std::string opponent_name;
     // error message if there are any
     std::string err_msg;
     // client map
