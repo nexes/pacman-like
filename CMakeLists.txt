@@ -12,6 +12,9 @@ project(
 	DESCRIPTION "Network game for UW CSS 432"
 )
 
+# for c++ Threads (this was only needed when compiling on the linux lab computers)
+find_package(Threads REQUIRED)
+
 # So we can pull down FTXUI
 include(FetchContent)
 FetchContent_Declare(
@@ -39,6 +42,9 @@ add_executable(
 )
 
 target_include_directories(Game PRIVATE include)
+
+# only necessary when compiling on the linux lab computers
+target_link_libraries(Server Threads::Threads)
 
 # needed for the FTXUI library to work. This is per their documentation
 target_link_libraries(
