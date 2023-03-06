@@ -109,7 +109,9 @@ SerializedData Serializer::SerializeNewOpponentResponse(int socket,
 //      Len:   int (size of Data in bytes)
 //      Data:  char[] (map data)
 // }
-SerializedData Serializer::SerializeNewPlayerResponse(int id, vector<string> &map)
+SerializedData Serializer::SerializeNewPlayerResponse(int id,
+                                                      int has_opponent,
+                                                      vector<string> &map)
 {
     SerializedData d;
     int *int_ptr = (int *)d.data;
@@ -119,7 +121,7 @@ SerializedData Serializer::SerializeNewPlayerResponse(int id, vector<string> &ma
     // ID
     *int_ptr++ = id;
     // OP
-    *int_ptr++ = 0;
+    *int_ptr++ = has_opponent;
 
     // Len
     int map_len = 0;

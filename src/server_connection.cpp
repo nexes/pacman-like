@@ -169,7 +169,6 @@ void ServerConnection::thread_handleConnection(int player_socket)
             switch (type) {
             case RequestType::NewPlayer: {
                 DeSerializedData p = Serializer::DeSerializeNewPlayerRequest(p1_data);
-                thread_newPlayerRequest(player_socket);
 
                 {  // lock and check if we have an opponent
                     std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
@@ -178,7 +177,10 @@ void ServerConnection::thread_handleConnection(int player_socket)
                     opponent_fd = this->thread_data.client_pairs[player_socket];
                 }
 
-                // if this opponent has an opponent (meaning this is player 2) send the
+                // send the new player response
+                handle_newPlayerRequest(player_socket, opponent_fd);
+
+                // if this player has an opponent (meaning this is player 2) send the
                 // newOpponentRequest with the other players name
                 if (opponent_fd != -1) {
                     std::string player1_name;
@@ -189,8 +191,8 @@ void ServerConnection::thread_handleConnection(int player_socket)
                         player1_name = this->thread_data.player_names[opponent_fd];
                         player2_name = this->thread_data.player_names[player_socket];
                     }
-                    thread_newOpponentRequest(player_socket, true, player1_name);
-                    thread_newOpponentRequest(opponent_fd, false, player2_name);
+                    handle_newOpponentRequest(player_socket, true, player1_name);
+                    handle_newOpponentRequest(opponent_fd, false, player2_name);
                 }
                 break;
             }
@@ -205,7 +207,7 @@ void ServerConnection::thread_handleConnection(int player_socket)
                 }
 
                 if (opponent_fd != -1) {
-                    thread_updatePlayerRequest(opponent_fd,
+                    handle_updatePlayerRequest(opponent_fd,
                                                p.score,
                                                p.opponent_pos,
                                                p.visited);
@@ -222,12 +224,13 @@ void ServerConnection::thread_handleConnection(int player_socket)
 // handle the new player request. Send a unique ID for the user and the game map.
 // if this is player one, hasOpponent will be false, player two this will be true
 // this function is called from the spawned thread
-void ServerConnection::thread_newPlayerRequest(int socket)
+void ServerConnection::handle_newPlayerRequest(int socket, int has_opponent)
 {
-    SerializedData d = Serializer::SerializeNewPlayerResponse(socket, this->map);
-
-    int len = d.len;
+    int op = has_opponent == -1 ? 0 : 1;
     int sent = 0;
+
+    SerializedData d = Serializer::SerializeNewPlayerResponse(socket, op, this->map);
+    int len = d.len;
 
     do {
         int s = write(socket, (void *)d.data, len);
@@ -242,7 +245,7 @@ void ServerConnection::thread_newPlayerRequest(int socket)
 }
 
 // tell the other player that an opponent has been found and give them that players name
-void ServerConnection::thread_newOpponentRequest(int player_socket,
+void ServerConnection::handle_newOpponentRequest(int player_socket,
                                                  bool isPlayer2,
                                                  std::string name)
 {
@@ -265,7 +268,7 @@ void ServerConnection::thread_newOpponentRequest(int player_socket,
     } while (sent != len);
 }
 
-void ServerConnection::thread_updatePlayerRequest(int socket,
+void ServerConnection::handle_updatePlayerRequest(int socket,
                                                   int score,
                                                   Position pos,
                                                   std::vector<Position> visited)

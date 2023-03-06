@@ -68,7 +68,9 @@ public:
                                                        string name);
 
     // serialize the new player response to send to the client
-    static SerializedData SerializeNewPlayerResponse(int id, vector<string> &map);
+    static SerializedData SerializeNewPlayerResponse(int id,
+                                                     int has_opponent,
+                                                     vector<string> &map);
 
     // de-serialize the new player response.
     static DeSerializedData DeSerializeNewPlayerResponse(const char data[]);

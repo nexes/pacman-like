@@ -53,19 +53,19 @@ private:
     };
 
     // handle a new connection
-    void thread_handleConnection(int);
+    void thread_handleConnection(int socket);
 
     // handle the new player request
-    void thread_newPlayerRequest(int);
+    void handle_newPlayerRequest(int socket, int has_opponent);
 
     // handle and new opponent found for player one
-    void thread_newOpponentRequest(int socket, bool isPlayer2, std::string name);
+    void handle_newOpponentRequest(int socket, bool isPlayer2, std::string name);
 
     // handle the player disconnect request
-    void thread_disconnectPlayerRequest();
+    void handle_disconnectPlayerRequest();
 
     // handle a player update request
-    void thread_updatePlayerRequest(int socket,
+    void handle_updatePlayerRequest(int socket,
                                     int score,
                                     Position pos,
                                     std::vector<Position> visited);
