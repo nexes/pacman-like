@@ -44,6 +44,7 @@ void Pacman::run()
 {
     bool isPlayer2 = false;
     std::vector<Position> visited;
+    Position last_pos = std::make_pair(0, 0);
 
     std::cout << "Waiting for player 2...\n";
 
@@ -77,9 +78,12 @@ void Pacman::run()
         Position current = this->ui.getPosition();
         visited = this->ui.getMovements();
 
-        // TODO: remove the visited cells we've already updated. send less data
-        if (!this->connection.requestUpdatePlayer(score, current, visited))
-            std::cerr << "error sending update\n";
+        // only need to send an update if the player has made a move
+        if (last_pos.first != current.first || last_pos.second != current.second) {
+            last_pos = current;
+            if (!this->connection.requestUpdatePlayer(score, current, visited))
+                std::cerr << "error sending update\n";
+        }
 
         loop.RunOnce();
         std::this_thread::sleep_for(std::chrono::milliseconds(GameInfo::ThreadSleep));

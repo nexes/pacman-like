@@ -285,7 +285,10 @@ int UI::getScore()
 vector<std::pair<int, int>> UI::getMovements()
 {
     std::lock_guard<std::mutex> lock(this->mutex);
-    return this->movement;
+    auto moves = this->movement;
+
+    this->movement.clear();
+    return moves;
 }
 
 void UI::setOpponentPosition(int x, int y)
