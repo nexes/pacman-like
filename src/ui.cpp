@@ -99,6 +99,7 @@ void UI::setupUserInput()
     // capture keyboard events on the canvas component
     this->canvas |= ftxui::CatchEvent([&](ftxui::Event event) {
         if (event == ftxui::Event::Custom) {
+            return false;
         }
 
         if (!event.is_mouse()) {
@@ -305,4 +306,9 @@ void UI::setOpponentScore(int score)
 std::pair<int, int> UI::getPosition()
 {
     return std::make_pair(player_x, player_y);
+}
+
+void UI::tick()
+{
+    this->screen.PostEvent(ftxui::Event::Custom);
 }

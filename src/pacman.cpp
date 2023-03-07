@@ -85,6 +85,7 @@ void Pacman::run()
                 std::cerr << "error sending update\n";
         }
 
+        this->ui.tick();
         loop.RunOnce();
         std::this_thread::sleep_for(std::chrono::milliseconds(GameInfo::ThreadSleep));
     }

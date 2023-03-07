@@ -46,6 +46,9 @@ public:
     // get the current player movement history.
     vector<Position> getMovements();
 
+    // creates an event so the UI updates the display
+    void tick();
+
 private:
     void setupCanvas();
     void setupUserInput();
