@@ -18,7 +18,8 @@ UI::UI()
       player_score(0),
       opponent_x(-1),
       opponent_y(-1),
-      opponent_score(0)
+      opponent_score(0),
+      quit(false)
 {
 }
 
@@ -43,9 +44,12 @@ string UI::displayGetUserName()
 
     // render the userinput container in a hbox
     userinput_container |= ftxui::Renderer([&](ftxui::Element inner) {
-        return ftxui::hbox({
-                   ftxui::text(" Player Name: ") | ftxui::bold | ftxui::vcenter,
-                   inner,
+        return ftxui::vbox({
+                   ftxui::hbox(
+                       {ftxui::text(" Player Name: ") | ftxui::bold | ftxui::vcenter,
+                        inner}),
+                   ftxui::separator(),
+                   ftxui::text("Make sure your terminal is large enough to see the map."),
                }) |
                ftxui::center;
     });
@@ -54,9 +58,19 @@ string UI::displayGetUserName()
     return this->player_name;
 }
 
+bool UI::hasQuit()
+{
+    return quit;
+}
+
 // render the final canvas and return the game loop
 ftxui::Loop UI::getGameLoop()
 {
+    ftxui::Component quit_button = ftxui::Button("Quit", [&] {
+        this->quit = true;
+        this->screen.ExitLoopClosure();
+    });
+
     // render the canvas in a window
     this->canvas |= ftxui::Renderer([&](ftxui::Element inner) {
         return ftxui::window(
@@ -78,7 +92,13 @@ ftxui::Loop UI::getGameLoop()
             }) | ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, 10));
     });
 
-    ftxui::Loop loop(&this->screen, this->canvas);
+    ftxui::Component c = ftxui::Container::Vertical({
+        this->canvas,
+        quit_button | ftxui::align_right,
+    });
+
+    // ftxui::Loop loop(&this->screen, this->canvas);
+    ftxui::Loop loop(&this->screen, c);
     return loop;
 }
 
@@ -183,7 +203,6 @@ void UI::setupUserInput()
                 return true;
             }
         }
-
         // return false so the event keeps bubbling up
         return false;
     });
@@ -288,7 +307,7 @@ vector<std::pair<int, int>> UI::getMovements()
     std::lock_guard<std::mutex> lock(this->mutex);
     auto moves = this->movement;
 
-    this->movement.clear();
+    // this->movement.clear();
     return moves;
 }
 

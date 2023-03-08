@@ -49,6 +49,9 @@ public:
     // creates an event so the UI updates the display
     void tick();
 
+    // checks if the 'quit' button was pressed.
+    bool hasQuit();
+
 private:
     void setupCanvas();
     void setupUserInput();
@@ -72,6 +75,9 @@ private:
     int opponent_x;
     int opponent_y;
     int opponent_score;
+
+    // flag set when the user clicks the 'quit' button
+    bool quit;
 
     // a history of player movement to send to the server and update the opponent with our
     // movement
