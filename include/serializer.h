@@ -19,7 +19,9 @@ struct SerializedData
 
 // the returned data struct for each de-serialization function
 // TODO: this is a data structure that is used for all response types, even if some of the
-// data members aren't being used by that response. Refactor this???
+// data members aren't being used by that response.
+//
+// TODO: Refactor this
 struct DeSerializedData
 {
     // the response type
@@ -44,43 +46,31 @@ struct DeSerializedData
     vector<Position> visited;
 };
 
-// this is a simple and not too clever serializer. This is not a general
-// purpose serializer, it will just work for this project. It doens't need
-// to know anything about the project, so it will just be a static, functional
-// serializer with no side effects.
-class Serializer
-{
-public:
-    Serializer() = delete;
-    Serializer(const Serializer &) = delete;
-
+namespace Serialize {
     // serialize a new player request to send to the server
-    static SerializedData SerializeNewPlayerRequest(string playername);
+    SerializedData NewPlayerRequest(string playername);
 
     // serialize a player update
-    static SerializedData SerializePlayerUpdateRequest(int score,
-                                                       Position pos,
-                                                       vector<Position> visited);
+    SerializedData PlayerUpdateRequest(int score, Position pos, vector<Position> visited);
 
     // serialize a new opponent request to send to the client
-    static SerializedData SerializeNewOpponentResponse(int socket,
-                                                       int isPlayer2,
-                                                       string name);
+    SerializedData NewOpponentResponse(int socket, int isPlayer2, string name);
 
     // serialize the new player response to send to the client
-    static SerializedData SerializeNewPlayerResponse(int id,
-                                                     int has_opponent,
-                                                     vector<string> &map);
+    SerializedData NewPlayerResponse(int id, int has_opponent, vector<string> &map);
+}  // namespace Serialize
 
+namespace DeSerialize {
     // de-serialize the new player response.
-    static DeSerializedData DeSerializeNewPlayerResponse(const char data[]);
+    DeSerializedData NewPlayerResponse(const char data[]);
 
     // de-serialize the new player request
-    static DeSerializedData DeSerializeNewPlayerRequest(const char data[]);
+    DeSerializedData NewPlayerRequest(const char data[]);
 
     // de-serialize the update player response
-    static DeSerializedData DeSerializeUpdatePlayerResponse(const char data[]);
+    DeSerializedData PlayerUpdateResponse(const char data[]);
 
     // de-serialize the new opponent response
-    static DeSerializedData DeSerializeNewOpponentResponse(const char data[]);
-};
+    DeSerializedData NewOpponentResponse(const char data[]);
+
+}  // namespace DeSerialize

@@ -7,7 +7,7 @@
 //     Type: int
 //     Name: string (player name)
 // }
-SerializedData Serializer::SerializeNewPlayerRequest(string playername)
+SerializedData Serialize::NewPlayerRequest(string playername)
 {
     SerializedData d;
     int *ptr = (int *)d.data;
@@ -37,9 +37,9 @@ SerializedData Serializer::SerializeNewPlayerRequest(string playername)
 //      Len:     int      (number of Visited)
 //      Visited: int[x,y] (player visited positons)
 // }
-SerializedData Serializer::SerializePlayerUpdateRequest(int score,
-                                                        Position pos,
-                                                        vector<Position> visited)
+SerializedData Serialize::PlayerUpdateRequest(int score,
+                                              Position pos,
+                                              vector<Position> visited)
 {
     SerializedData d;
     int *ptr = (int *)d.data;
@@ -78,9 +78,7 @@ SerializedData Serializer::SerializePlayerUpdateRequest(int score,
 //      len:     int (length of the player name)
 //      Name:    string (the other players name)
 // }
-SerializedData Serializer::SerializeNewOpponentResponse(int socket,
-                                                        int isPlayer2,
-                                                        string name)
+SerializedData Serialize::NewOpponentResponse(int socket, int isPlayer2, string name)
 {
     SerializedData d;
     int *ptr = (int *)d.data;
@@ -109,9 +107,7 @@ SerializedData Serializer::SerializeNewOpponentResponse(int socket,
 //      Len:   int (size of Data in bytes)
 //      Data:  char[] (map data)
 // }
-SerializedData Serializer::SerializeNewPlayerResponse(int id,
-                                                      int has_opponent,
-                                                      vector<string> &map)
+SerializedData Serialize::NewPlayerResponse(int id, int has_opponent, vector<string> &map)
 {
     SerializedData d;
     int *int_ptr = (int *)d.data;
@@ -146,7 +142,7 @@ SerializedData Serializer::SerializeNewPlayerResponse(int id,
     return d;
 }
 
-DeSerializedData Serializer::DeSerializeNewPlayerResponse(const char data[])
+DeSerializedData DeSerialize::NewPlayerResponse(const char data[])
 {
     DeSerializedData d;
     int *ptr = (int *)data;
@@ -172,7 +168,7 @@ DeSerializedData Serializer::DeSerializeNewPlayerResponse(const char data[])
     return d;
 }
 
-DeSerializedData Serializer::DeSerializeNewPlayerRequest(const char data[])
+DeSerializedData DeSerialize::NewPlayerRequest(const char data[])
 {
     DeSerializedData d;
 
@@ -186,7 +182,7 @@ DeSerializedData Serializer::DeSerializeNewPlayerRequest(const char data[])
     return d;
 }
 
-DeSerializedData Serializer::DeSerializeUpdatePlayerResponse(const char data[])
+DeSerializedData DeSerialize::PlayerUpdateResponse(const char data[])
 {
     DeSerializedData d;
     int *ptr = (int *)data;
@@ -210,7 +206,7 @@ DeSerializedData Serializer::DeSerializeUpdatePlayerResponse(const char data[])
     return d;
 }
 
-DeSerializedData Serializer::DeSerializeNewOpponentResponse(const char data[])
+DeSerializedData DeSerialize::NewOpponentResponse(const char data[])
 {
     DeSerializedData d;
     int *ptr = (int *)data;
