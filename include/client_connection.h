@@ -3,6 +3,7 @@
 #include "../include/my_types.h"
 
 #include <mutex>
+#include <thread>
 #include <string>
 #include <vector>
 
@@ -31,8 +32,8 @@ public:
     // this will return a unique player ID and the game map
     bool requestNewPlayer(std::string playername);
 
-    // todo
-    void requestDisconnectPlayer();
+    // send a disconnect request with the users final score and opponents final score
+    bool requestDisconnectPlayer(int score, int op_score);
 
     // send a request to the pacman server to update the players info
     bool requestUpdatePlayer(int score, Position pos, std::vector<Position> visited);
@@ -57,6 +58,10 @@ public:
 
     // get the opponents name
     std::string getOpponentName();
+
+    // check if we've sent the disconnect request. This will tell our main loop if we can
+    // stop our main loop
+    bool sentDisconnect();
 
 private:
     struct CriticalSection
@@ -87,12 +92,16 @@ private:
     bool hasUpdate;
     // is this player the second player
     bool player2;
+    // flag is set when this client sends a disconnect request
+    bool sent_disconnect;
     // player2 name
     std::string opponent_name;
     // error message if there are any
     std::string err_msg;
     // client map
     std::vector<std::string> client_map;
+    //
+    std::thread thread_id;
     // shared data between threads
     CriticalSection thread_data;
 };

@@ -10,12 +10,16 @@
 #include <iostream>
 #include <thread>
 
-ClientConnection::ClientConnection() : listening(false), hasUpdate(false), err_msg("")
+ClientConnection::ClientConnection()
+    : listening(false), hasUpdate(false), err_msg(""), sent_disconnect(false)
 {
 }
 
 ClientConnection::~ClientConnection()
 {
+    std::cout << "~ClientConnection called\n";
+    this->thread_id.join();
+    std::cout << "after thread.join\n";
     close(this->thread_data.socket_fd);
 }
 
@@ -74,8 +78,7 @@ bool ClientConnection::setupConnection()
 
     // start a new thread to listen for server responses
     this->listening = true;
-    std::thread t(&ClientConnection::thread_listenToServer, this);
-    t.detach();  // TODO: proper thread handling
+    this->thread_id = std::thread(&ClientConnection::thread_listenToServer, this);
 
     return true;
 }
@@ -135,6 +138,31 @@ bool ClientConnection::requestUpdatePlayer(int score,
     return true;
 }
 
+bool ClientConnection::requestDisconnectPlayer(int score, int op_score)
+{
+    int sent = 0;
+    int wrote = 0;
+
+    SerializedData disc = Serialize::PlayerDisconnectRequest(client_id, score, op_score);
+
+    do {
+        {
+            std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
+            wrote = write(this->thread_data.socket_fd, (void *)disc.data, disc.len);
+        }  // unlock critical section here
+
+        if (wrote == -1) {
+            err_msg = std::string("DisconnectPlayer request: ").append(strerror(wrote));
+            return false;
+        }
+        sent += wrote;
+    } while (sent != disc.len);
+
+    std::cerr << "disconnect player request finished sending\n";
+    sent_disconnect = true;
+    return true;
+}
+
 // a second thread that will keep listening to server traffic.
 void ClientConnection::thread_listenToServer()
 {
@@ -176,7 +204,7 @@ void ClientConnection::thread_listenToServer()
             break;
         }
         case RequestType::UpdatePlayer: {
-            playerData = Serializer::DeSerializeUpdatePlayerResponse(response);
+            playerData = DeSerialize::PlayerUpdateResponse(response);
 
             // updating player data can read/write from both threads mutliple times so
             // I lock this response
@@ -190,12 +218,24 @@ void ClientConnection::thread_listenToServer()
             break;
         }
         case RequestType::DisconnectPlayer:
+            playerData = DeSerialize::PlayerDisconnectResponse(response);
+
+            // if we get a disconnect response but didn't send it, this means the opponent
+            // disconnect and we need to send our own disconnect request to the server
+            if (!sent_disconnect) {
+                requestDisconnectPlayer(playerData.op_score, playerData.score);
+                sent_disconnect = true;
+            }
+
+            this->listening = false;
+            std::cout << "Got a disconnect response\n";
             break;
         }
 
         // sleep
         std::this_thread::sleep_for(std::chrono::microseconds(GameInfo::ThreadSleep));
     }
+    std::cerr << "listening loop done\n";
 }
 
 std::string ClientConnection::getErrorMsg()
@@ -234,4 +274,9 @@ bool ClientConnection::isPlayer2()
 std::string ClientConnection::getOpponentName()
 {
     return opponent_name;
+}
+
+bool ClientConnection::sentDisconnect()
+{
+    return sent_disconnect;
 }

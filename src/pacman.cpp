@@ -42,20 +42,21 @@ bool Pacman::setupNetwork()
 
 void Pacman::run()
 {
+    int score = 0;
     bool isPlayer2 = false;
     std::vector<Position> visited;
     Position last_pos = std::make_pair(0, 0);
 
-    std::cout << "Waiting for player 2...\n";
+    std::cout << "Waiting for an opponent...\n";
 
     // wait until player 2 connects to show the map
     while (!this->connection.hasOpponent())
         std::this_thread::sleep_for(std::chrono::milliseconds(GameInfo::ThreadSleep));
 
     // get the map and player2 name from the server and give it to the UI
-    std::vector<std::string> map = this->connection.getGameMap();
-    opponent_name = this->connection.getOpponentName();
     isPlayer2 = this->connection.isPlayer2();
+    opponent_name = this->connection.getOpponentName();
+    std::vector<std::string> map = this->connection.getGameMap();
 
     this->ui.setGameMap(map, isPlayer2, opponent_name);
 
@@ -63,6 +64,12 @@ void Pacman::run()
     ftxui::Loop loop = this->ui.getGameLoop();
 
     while (playing) {
+        // if the player clicked the 'quit' button or their opponent quit
+        if (this->ui.hasQuit() || this->connection.sentDisconnect()) {
+            playing = false;
+            break;
+        }
+
         // get our opponents data
         if (this->connection.recievedOpponentUpdate()) {
             OpponentData op = this->connection.getOpponentData();
@@ -74,13 +81,14 @@ void Pacman::run()
         }
 
         // send our players updated data
-        int score = this->ui.getScore();
-        Position current = this->ui.getPosition();
+        score = this->ui.getScore();
         visited = this->ui.getMovements();
+        Position current = this->ui.getPosition();
 
         // only need to send an update if the player has made a move
         if (last_pos.first != current.first || last_pos.second != current.second) {
             last_pos = current;
+
             if (!this->connection.requestUpdatePlayer(score, current, visited))
                 std::cerr << "error sending update\n";
         }
@@ -90,5 +98,7 @@ void Pacman::run()
         std::this_thread::sleep_for(std::chrono::milliseconds(GameInfo::ThreadSleep));
     }
 
+    if (!this->connection.sentDisconnect())
+        this->connection.requestDisconnectPlayer(score, opponent_score);
     std::cout << "Thank you for playing!\n";
 }
