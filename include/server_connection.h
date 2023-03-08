@@ -62,7 +62,7 @@ private:
     void handle_newOpponentRequest(int socket, bool isPlayer2, std::string name);
 
     // handle the player disconnect request
-    void handle_disconnectPlayerRequest();
+    void handle_disconnectPlayerRequest(int socket, int score, int op_score);
 
     // handle a player update request
     void handle_updatePlayerRequest(int socket,
