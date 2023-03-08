@@ -89,7 +89,7 @@ bool ClientConnection::requestNewPlayer(std::string playername)
     int sent = 0;
 
     // serialize the send request data;
-    SerializedData player = Serializer::SerializeNewPlayerRequest(playername);
+    SerializedData player = Serialize::NewPlayerRequest(playername);
 
     // send the newplayer request to the server
     do {
@@ -116,7 +116,7 @@ bool ClientConnection::requestUpdatePlayer(int score,
     int len = 0;
     int sent = 0;
 
-    SerializedData update = Serializer::SerializePlayerUpdateRequest(score, pos, visited);
+    SerializedData update = Serialize::PlayerUpdateRequest(score, pos, visited);
 
     // send the newplayer request to the server
     do {
@@ -159,7 +159,7 @@ void ClientConnection::thread_listenToServer()
 
         switch (type) {
         case RequestType::NewPlayer: {
-            playerData = Serializer::DeSerializeNewPlayerResponse(response);
+            playerData = DeSerialize::NewPlayerResponse(response);
 
             this->client_id = playerData.userID;
             this->client_map = playerData.map;
@@ -168,7 +168,7 @@ void ClientConnection::thread_listenToServer()
             break;
         }
         case RequestType::NewOpponent: {
-            playerData = Serializer::DeSerializeNewOpponentResponse(response);
+            playerData = DeSerialize::NewOpponentResponse(response);
 
             this->opponent = true;
             this->player2 = playerData.isPlayer2;

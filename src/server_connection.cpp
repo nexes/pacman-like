@@ -168,7 +168,7 @@ void ServerConnection::thread_handleConnection(int player_socket)
 
             switch (type) {
             case RequestType::NewPlayer: {
-                DeSerializedData p = Serializer::DeSerializeNewPlayerRequest(p1_data);
+                DeSerializedData p = DeSerialize::NewPlayerRequest(p1_data);
 
                 {  // lock and check if we have an opponent
                     std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
@@ -199,7 +199,7 @@ void ServerConnection::thread_handleConnection(int player_socket)
             case RequestType::DisconnectPlayer:
                 break;
             case RequestType::UpdatePlayer:
-                DeSerializedData p = Serializer::DeSerializeUpdatePlayerResponse(p1_data);
+                DeSerializedData p = DeSerialize::PlayerUpdateResponse(p1_data);
 
                 {  // lock and get our opponents socket fd
                     std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
@@ -229,7 +229,7 @@ void ServerConnection::handle_newPlayerRequest(int socket, int has_opponent)
     int op = has_opponent == -1 ? 0 : 1;
     int sent = 0;
 
-    SerializedData d = Serializer::SerializeNewPlayerResponse(socket, op, this->map);
+    SerializedData d = Serialize::NewPlayerResponse(socket, op, this->map);
     int len = d.len;
 
     do {
@@ -251,7 +251,7 @@ void ServerConnection::handle_newOpponentRequest(int player_socket,
 {
     int p2 = isPlayer2 ? 1 : 0;
 
-    SerializedData d = Serializer::SerializeNewOpponentResponse(player_socket, p2, name);
+    SerializedData d = Serialize::NewOpponentResponse(player_socket, p2, name);
 
     int len = d.len;
     int sent = 0;
@@ -273,7 +273,7 @@ void ServerConnection::handle_updatePlayerRequest(int socket,
                                                   Position pos,
                                                   std::vector<Position> visited)
 {
-    SerializedData d = Serializer::SerializePlayerUpdateRequest(score, pos, visited);
+    SerializedData d = Serialize::PlayerUpdateRequest(score, pos, visited);
 
     int len = d.len;
     int sent = 0;
