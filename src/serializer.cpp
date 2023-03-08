@@ -142,6 +142,35 @@ SerializedData Serialize::NewPlayerResponse(int id, int has_opponent, vector<str
     return d;
 }
 
+// serialize the player disconnect response
+// Disconnect response format {
+//      Type:  int
+//      ID:    int (players unique id)
+//      Score: int (player 1 final score)
+//      Score: int (player 2 final score)
+// }
+SerializedData Serialize::PlayerDisconnectRequest(int id, int p1_score, int p2_score)
+{
+    SerializedData d;
+    int *int_ptr = (int *)d.data;
+
+    // type
+    *int_ptr++ = RequestType::DisconnectPlayer;
+
+    // player id
+    *int_ptr++ = id;
+
+    // player 1 final score
+    *int_ptr++ = p1_score;
+
+    // player 2 final score
+    *int_ptr = p2_score;
+
+    d.len = sizeof(int) * 4;
+
+    return d;
+}
+
 DeSerializedData DeSerialize::NewPlayerResponse(const char data[])
 {
     DeSerializedData d;
@@ -220,6 +249,19 @@ DeSerializedData DeSerialize::NewOpponentResponse(const char data[])
     char *c_ptr = (char *)ptr;
     for (int i = 0; i < len; i++)
         d.playername.push_back(*c_ptr++);
+
+    return d;
+}
+
+DeSerializedData DeSerialize::PlayerDisconnectResponse(const char data[])
+{
+    DeSerializedData d;
+    int *ptr = (int *)data;
+
+    d.responseType = *ptr++;
+    d.userID = *ptr++;
+    d.score = *ptr++;
+    d.op_score = *ptr;
 
     return d;
 }

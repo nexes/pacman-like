@@ -30,6 +30,8 @@ struct DeSerializedData
     int userID;
     // the player score
     int score;
+    // the opponents score
+    int op_score;
     // the opponents position
     Position opponent_pos;
     // the playername
@@ -58,6 +60,10 @@ namespace Serialize {
 
     // serialize the new player response to send to the client
     SerializedData NewPlayerResponse(int id, int has_opponent, vector<string> &map);
+
+    // serialize the disconnect request
+    SerializedData PlayerDisconnectRequest(int id, int p1_score, int p2_score);
+
 }  // namespace Serialize
 
 namespace DeSerialize {
@@ -72,5 +78,8 @@ namespace DeSerialize {
 
     // de-serialize the new opponent response
     DeSerializedData NewOpponentResponse(const char data[]);
+
+    // de-serialize the player disconnect response
+    DeSerializedData PlayerDisconnectResponse(const char data[]);
 
 }  // namespace DeSerialize
