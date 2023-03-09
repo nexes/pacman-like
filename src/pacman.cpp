@@ -104,6 +104,7 @@ void Pacman::run()
 
     if (!this->connection.sentDisconnect()) {
         this->connection.requestDisconnectPlayer(score, opponent_score);
+        std::this_thread::sleep_for(std::chrono::milliseconds(GameInfo::ThreadSleep));
     } else {
         // display to the other player that this player quit
         this->ui.displayDisconnect(opponent_name);
