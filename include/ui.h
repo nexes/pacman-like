@@ -22,6 +22,9 @@ public:
     // display ther username UI and return the the name the user inputs
     string displayGetUserName();
 
+    // display the after game scores
+    void displayEndGameScore(LeaderBoard board);
+
     // give the map to the UI. This needs to be called before displayGameMap()
     void setGameMap(vector<string> map, bool player2, string player2Name);
 
@@ -51,6 +54,9 @@ public:
 
     // checks if the 'quit' button was pressed.
     bool hasQuit();
+
+    // let the player know their opponent has quit the game
+    void displayDisconnect(string name);
 
 private:
     void setupCanvas();

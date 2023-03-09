@@ -3,6 +3,7 @@
 #include <ftxui/component/component.hpp>
 #include <ftxui/component/loop.hpp>
 #include <ftxui/dom/canvas.hpp>
+#include <ftxui/dom/table.hpp>
 #include <ftxui/dom/elements.hpp>
 
 #include <fstream>
@@ -58,9 +59,84 @@ string UI::displayGetUserName()
     return this->player_name;
 }
 
-bool UI::hasQuit()
+void UI::displayDisconnect(string name)
 {
-    return quit;
+    ftxui::Component okay = ftxui::Button("Okay", this->screen.ExitLoopClosure());
+    ftxui::Component container = ftxui::Container::Horizontal({okay});
+
+    container |= ftxui::Renderer([&](ftxui::Element inner) {
+        return ftxui::hbox({
+                   ftxui::text(name + " has left. "),
+                   ftxui::separator(),
+                   inner,
+               }) |
+               ftxui::center;
+    });
+
+    this->screen.Loop(container);
+}
+
+void UI::displayEndGameScore(LeaderBoard board)
+{
+    std::vector<std::vector<std::string>> table_rows;
+    table_rows.push_back({
+        "Game",
+        "Player 1",
+        "Score",
+        "Player 2",
+        "Score",
+        "Winner",
+    });
+
+    for (int i = 0; i < board.size(); i++) {
+        auto row = board[i];
+        std::vector<std::string> r;
+
+        r.push_back(std::to_string(i + 1));
+        r.push_back(std::get<0>(row));
+        r.push_back(std::to_string(std::get<1>(row)));
+        r.push_back(std::get<2>(row));
+        r.push_back(std::to_string(std::get<3>(row)));
+
+        if (std::get<1>(row) > std::get<3>(row))
+            r.push_back(std::get<0>(row));
+        else if (std::get<1>(row) < std::get<3>(row))
+            r.push_back(std::get<2>(row));
+        else
+            r.push_back("Tie");
+
+        table_rows.push_back(r);
+    }
+
+    // create a table
+    auto table = ftxui::Table(table_rows);
+
+    table.SelectAll().Border(ftxui::LIGHT);
+
+    // Add border around the winner column.
+    table.SelectColumn(5).Border(ftxui::LIGHT);
+
+    // Make first row bold with a double border.
+    table.SelectRow(0).Decorate(ftxui::bold);
+    table.SelectRow(0).SeparatorVertical(ftxui::LIGHT);
+    table.SelectRow(0).Border(ftxui::DOUBLE);
+
+    // right align the scores and winner column
+    table.SelectColumn(2).DecorateCells(ftxui::align_right);
+    table.SelectColumn(4).DecorateCells(ftxui::align_right);
+    table.SelectColumn(5).DecorateCells(ftxui::align_right);
+
+    // Select row from the second to the last and alternate between colors
+    auto content = table.SelectRows(1, -1);
+    content.DecorateCellsAlternateRow(ftxui::color(ftxui::Color::Blue), 3, 0);
+    content.DecorateCellsAlternateRow(ftxui::color(ftxui::Color::Cyan), 3, 1);
+    content.DecorateCellsAlternateRow(ftxui::color(ftxui::Color::White), 3, 2);
+
+    auto document = table.Render();
+    auto screen = ftxui::Screen::Create(ftxui::Dimension::Fit(document));
+    Render(screen, document);
+    screen.Print();
+    std::cout << "\n";
 }
 
 // render the final canvas and return the game loop
@@ -77,28 +153,26 @@ ftxui::Loop UI::getGameLoop()
             ftxui::text("Pac-Man-[kinda]") | ftxui::hcenter,
             ftxui::vbox({
                 ftxui::text(this->player_name + " - you are the red player"),
-                inner,
+                inner | ftxui::center,
                 ftxui::separator(),
                 ftxui::hbox({
                     ftxui::text(this->player_name + " " +
-                                std::to_string(this->player_score)) |
+                                std::to_string(this->player_score) + " ") |
                         ftxui::bold,
                     ftxui::separator(),
-                    ftxui::text(this->opponent_name + " " +
+                    ftxui::text(" " + this->opponent_name + " " +
                                 std::to_string(this->opponent_score)) |
                         ftxui::bold,
-                    ftxui::paragraphAlignRight("Ctrl-c to exit"),
                 }) | ftxui::size(ftxui::HEIGHT, ftxui::LESS_THAN, 5),
             }) | ftxui::size(ftxui::WIDTH, ftxui::GREATER_THAN, 10));
     });
 
-    ftxui::Component c = ftxui::Container::Vertical({
+    ftxui::Component canvas_container = ftxui::Container::Vertical({
         this->canvas,
         quit_button | ftxui::align_right,
     });
 
-    // ftxui::Loop loop(&this->screen, this->canvas);
-    ftxui::Loop loop(&this->screen, c);
+    ftxui::Loop loop(&this->screen, canvas_container);
     return loop;
 }
 
@@ -330,4 +404,9 @@ std::pair<int, int> UI::getPosition()
 void UI::tick()
 {
     this->screen.PostEvent(ftxui::Event::Custom);
+}
+
+bool UI::hasQuit()
+{
+    return quit;
 }
