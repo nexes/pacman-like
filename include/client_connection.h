@@ -44,6 +44,10 @@ public:
     // get the updated data on our opponent
     OpponentData getOpponentData();
 
+    // get the leader board. This is only populated once the game is over and the
+    // disconnect response is handled
+    LeaderBoard getLeaderBoard();
+
     // return the error message if one was set
     std::string getErrorMsg();
 
@@ -98,6 +102,8 @@ private:
     std::string opponent_name;
     // error message if there are any
     std::string err_msg;
+    // leader board (only populated after the disconnect response)
+    LeaderBoard leader_board;
     // client map
     std::vector<std::string> client_map;
     //

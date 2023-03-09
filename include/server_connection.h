@@ -52,6 +52,16 @@ private:
         std::unordered_map<int, std::string> player_names;
     };
 
+    // critical sections for just the leader board
+    struct CriticalSection_Board
+    {
+        // mutex to lock when writing data
+        std::mutex thread_mutex;
+
+        // leader board
+        LeaderBoard board;
+    };
+
     // handle a new connection
     void thread_handleConnection(int socket);
 
@@ -79,4 +89,6 @@ private:
     std::vector<std::string> map;
     // data structure that each thread will have access to
     CriticalSection thread_data;
+    // data structure for the leaderboard each thread will read/write to
+    CriticalSection_Board leader_board;
 };

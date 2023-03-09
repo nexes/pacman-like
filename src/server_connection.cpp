@@ -197,33 +197,39 @@ void ServerConnection::thread_handleConnection(int player_socket)
                 break;
             }
             case RequestType::DisconnectPlayer: {
-                DeSerializedData p = DeSerialize::PlayerDisconnectResponse(p1_data);
-                int disc_player = p.userID;
-                int disc_score = p.score;
-                int op_score = p.op_score;
-                std::cout << "Player " << disc_player << " disconnect request\n";
+                DeSerializedData p = DeSerialize::PlayerDisconnectRequest(p1_data);
+                std::string player1_name;
+                std::string player2_name;
 
+                // lock the critical section to remove players socket from client_pairs
                 {
                     std::lock_guard<std::mutex> lock(this->thread_data.thread_mutex);
-                    opponent_fd = this->thread_data.client_pairs[disc_player];
+                    opponent_fd = this->thread_data.client_pairs[p.userID];
 
-                    if (opponent_fd != -1)
+                    if (opponent_fd != -1) {
                         this->thread_data.client_pairs[opponent_fd] = -1;
+                        player1_name = this->thread_data.player_names[p.userID];
+                        player2_name = this->thread_data.player_names[opponent_fd];
+                    }
 
                     // remove this player and their opponent from the map
-                    this->thread_data.client_pairs.erase(disc_player);
+                    this->thread_data.client_pairs.erase(p.userID);
                 }
 
+                // if this is the disconnecting player, update the leader board and tell
+                // the opponent of the disconnect
                 if (opponent_fd != -1) {
-                    // send a disconnect response to the opponent
-                    handle_disconnectPlayerRequest(opponent_fd, op_score, disc_score);
-                    // send a disconnect response back to the player
-                    handle_disconnectPlayerRequest(disc_player, disc_score, op_score);
+                    {
+                        std::lock_guard<std::mutex> lock(this->leader_board.thread_mutex);
+                        this->leader_board.board.push_back(
+                            {player1_name, p.score, player2_name, p.op_score});
+                    }
+
+                    handle_disconnectPlayerRequest(opponent_fd, p.op_score, p.score);
+                    handle_disconnectPlayerRequest(p.userID, p.score, p.op_score);
                 }
 
-                // remove the players socket from the map and close this thread
                 playing = false;
-
                 break;
             }
             case RequestType::UpdatePlayer:
@@ -239,9 +245,6 @@ void ServerConnection::thread_handleConnection(int player_socket)
                                                p.score,
                                                p.opponent_pos,
                                                p.visited);
-                } else {
-                    std::cout << "update for player " << player_socket
-                              << " op = " << opponent_fd << "\n";
                 }
                 break;
             };
@@ -250,7 +253,6 @@ void ServerConnection::thread_handleConnection(int player_socket)
         // sleep
         std::this_thread::sleep_for(std::chrono::milliseconds(GameInfo::ThreadSleep));
     }
-    std::cout << "Thread for " << player_socket << " ending\n";
 }
 
 // handle the new player request. Send a unique ID for the user and the game map.
@@ -318,7 +320,12 @@ void ServerConnection::handle_updatePlayerRequest(int socket,
 void ServerConnection::handle_disconnectPlayerRequest(int socket, int score, int op_score)
 {
     int sent = 0;
-    SerializedData d = Serialize::PlayerDisconnectRequest(socket, score, op_score);
+    SerializedData d;
+    // SerializedData d = Serialize::PlayerDisconnectRequest(socket, score, op_score);
+    {
+        std::lock_guard<std::mutex> lock(this->leader_board.thread_mutex);
+        d = Serialize::PlayerDisconnectResponse(socket, this->leader_board.board);
+    }
 
     do {
         int s = write(socket, (void *)d.data, d.len);

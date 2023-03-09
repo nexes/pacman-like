@@ -17,9 +17,7 @@ ClientConnection::ClientConnection()
 
 ClientConnection::~ClientConnection()
 {
-    std::cout << "~ClientConnection called\n";
     this->thread_id.join();
-    std::cout << "after thread.join\n";
     close(this->thread_data.socket_fd);
 }
 
@@ -158,7 +156,6 @@ bool ClientConnection::requestDisconnectPlayer(int score, int op_score)
         sent += wrote;
     } while (sent != disc.len);
 
-    std::cerr << "disconnect player request finished sending\n";
     sent_disconnect = true;
     return true;
 }
@@ -219,6 +216,7 @@ void ClientConnection::thread_listenToServer()
         }
         case RequestType::DisconnectPlayer:
             playerData = DeSerialize::PlayerDisconnectResponse(response);
+            leader_board = playerData.board;
 
             // if we get a disconnect response but didn't send it, this means the opponent
             // disconnect and we need to send our own disconnect request to the server
@@ -228,14 +226,12 @@ void ClientConnection::thread_listenToServer()
             }
 
             this->listening = false;
-            std::cout << "Got a disconnect response\n";
             break;
         }
 
         // sleep
         std::this_thread::sleep_for(std::chrono::microseconds(GameInfo::ThreadSleep));
     }
-    std::cerr << "listening loop done\n";
 }
 
 std::string ClientConnection::getErrorMsg()
@@ -274,6 +270,11 @@ bool ClientConnection::isPlayer2()
 std::string ClientConnection::getOpponentName()
 {
     return opponent_name;
+}
+
+LeaderBoard ClientConnection::getLeaderBoard()
+{
+    return leader_board;
 }
 
 bool ClientConnection::sentDisconnect()
