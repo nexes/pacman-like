@@ -8,7 +8,7 @@
 #include <thread>
 #include <vector>
 
-Pacman::Pacman() : username("Player"), opponent_name(""), playing(true), player_score(0)
+Pacman::Pacman() : username("Player"), opponent_name(""), playing(false), player_score(0)
 {
 }
 
@@ -40,13 +40,8 @@ bool Pacman::setupNetwork()
     return true;
 }
 
-void Pacman::run()
+void Pacman::setupGame()
 {
-    int score = 0;
-    bool isPlayer2 = false;
-    std::vector<Position> visited;
-    Position last_pos = std::make_pair(0, 0);
-
     std::cout << "Waiting for an opponent...\n";
 
     // wait until player 2 connects to show the map
@@ -54,17 +49,25 @@ void Pacman::run()
         std::this_thread::sleep_for(std::chrono::milliseconds(GameInfo::ThreadSleep));
 
     // get the map and player2 name from the server and give it to the UI
-    isPlayer2 = this->connection.isPlayer2();
+    bool isPlayer2 = this->connection.isPlayer2();
     opponent_name = this->connection.getOpponentName();
     std::vector<std::string> map = this->connection.getGameMap();
 
     this->ui.setGameMap(map, isPlayer2, opponent_name);
+    playing = true;
+}
+
+void Pacman::run()
+{
+    int score = 0;
+    std::vector<Position> visited;
+    Position last_pos = std::make_pair(0, 0);
 
     // display the game map and return the game loop object (FTXUI component)
     ftxui::Loop loop = this->ui.getGameLoop();
 
     while (playing) {
-        // if the player clicked the 'quit' button or their opponent quit
+        // if the player clicked the 'quit' button or their opponent has quit
         if (this->ui.hasQuit() || this->connection.sentDisconnect()) {
             playing = false;
             break;
@@ -90,7 +93,8 @@ void Pacman::run()
             last_pos = current;
 
             if (!this->connection.requestUpdatePlayer(score, current, visited))
-                std::cerr << "error sending update\n";
+                std::cerr << "error sending update " << this->connection.getErrorMsg()
+                          << "\n";
         }
 
         this->ui.tick();
@@ -98,7 +102,15 @@ void Pacman::run()
         std::this_thread::sleep_for(std::chrono::milliseconds(GameInfo::ThreadSleep));
     }
 
-    if (!this->connection.sentDisconnect())
+    if (!this->connection.sentDisconnect()) {
         this->connection.requestDisconnectPlayer(score, opponent_score);
-    std::cout << "Thank you for playing!\n";
+    } else {
+        // display to the other player that this player quit
+        this->ui.displayDisconnect(opponent_name);
+    }
+}
+
+void Pacman::showLeaderBoard()
+{
+    this->ui.displayEndGameScore(this->connection.getLeaderBoard());
 }

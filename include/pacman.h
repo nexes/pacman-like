@@ -18,6 +18,12 @@ public:
     // returns true if the connection was successful
     bool setupNetwork();
 
+    // setup game data from the server, give it to the ui
+    void setupGame();
+
+    // print the leader board
+    void showLeaderBoard();
+
     // starts the game
     void run();
 

@@ -12,7 +12,9 @@ int main(int argc, const char* argv[])
     if (!pacman.setupNetwork())
         return 1;
 
+    pacman.setupGame();
     pacman.run();
 
+    pacman.showLeaderBoard();
     return 0;
 }
