@@ -142,7 +142,7 @@ SerializedData Serialize::NewPlayerResponse(int id, int has_opponent, vector<str
     return d;
 }
 
-// serialize the player disconnect response
+// serialize the player disconnect request
 // Disconnect response format {
 //      Type:  int
 //      ID:    int (players unique id)
@@ -167,6 +167,53 @@ SerializedData Serialize::PlayerDisconnectRequest(int id, int p1_score, int p2_s
     *int_ptr = p2_score;
 
     d.len = sizeof(int) * 4;
+
+    return d;
+}
+
+// serialize the player disconnect response
+// Disconnect response format {
+//      Type:  int (response type)
+//      ID:    int (players unique id)
+//      Len:   int (number of chars in data)
+//      Data:  string (name;score;name;score...)
+// }
+SerializedData Serialize::PlayerDisconnectResponse(int id, LeaderBoard leader)
+{
+    SerializedData d;
+    int *int_ptr = (int *)d.data;
+
+    // type
+    *int_ptr++ = RequestType::DisconnectPlayer;
+
+    // player id
+    *int_ptr++ = id;
+
+    std::string data = "";
+    for (const auto &row : leader) {
+        // player 1 name
+        data.append(std::get<0>(row));
+        data.append(";");
+        // player 1 score
+        data.append(std::to_string(std::get<1>(row)));
+        data.append(";");
+        // player 2 name
+        data.append(std::get<2>(row));
+        data.append(";");
+        // player 2 score
+        data.append(std::to_string(std::get<3>(row)));
+        data.append(";");
+    }
+
+    // len
+    *int_ptr++ = data.length();
+
+    // data
+    char *c_ptr = (char *)int_ptr;
+    for (const char &c : data)
+        *c_ptr++ = c;
+
+    d.len = sizeof(int) * 3 + sizeof(char) * data.length();
 
     return d;
 }
@@ -253,7 +300,7 @@ DeSerializedData DeSerialize::NewOpponentResponse(const char data[])
     return d;
 }
 
-DeSerializedData DeSerialize::PlayerDisconnectResponse(const char data[])
+DeSerializedData DeSerialize::PlayerDisconnectRequest(const char data[])
 {
     DeSerializedData d;
     int *ptr = (int *)data;
@@ -262,6 +309,57 @@ DeSerializedData DeSerialize::PlayerDisconnectResponse(const char data[])
     d.userID = *ptr++;
     d.score = *ptr++;
     d.op_score = *ptr;
+
+    return d;
+}
+
+DeSerializedData DeSerialize::PlayerDisconnectResponse(const char data[])
+{
+    DeSerializedData d;
+    int *ptr = (int *)data;
+
+    d.responseType = *ptr++;
+    d.userID = *ptr++;
+    d.len = *ptr++;
+
+    int type = 0;
+    std::string p1_name;
+    std::string p1_score;
+    std::string p2_name;
+    std::string p2_score;
+
+    char *c_ptr = (char *)ptr;
+
+    for (int i = 0; i < d.len; i++) {
+        if (*c_ptr == ';') {
+            c_ptr++;
+            type = (type + 1) % 4;
+
+            if (type == 0) {
+                d.board.push_back(
+                    {p1_name, std::stoi(p1_score), p2_name, std::stoi(p2_score)});
+                p1_name = "";
+                p1_score = "";
+                p2_name = "";
+                p2_score = "";
+            }
+        }
+
+        switch (type) {
+        case 0:
+            p1_name.push_back(*c_ptr++);
+            break;
+        case 1:
+            p1_score.push_back(*c_ptr++);
+            break;
+        case 2:
+            p2_name.push_back(*c_ptr++);
+            break;
+        case 3:
+            p2_score.push_back(*c_ptr++);
+            break;
+        }
+    }
 
     return d;
 }

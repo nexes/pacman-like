@@ -46,6 +46,8 @@ struct DeSerializedData
     vector<string> map;
     // list of opponents visited positions
     vector<Position> visited;
+    // the leader board
+    LeaderBoard board;
 };
 
 namespace Serialize {
@@ -64,6 +66,9 @@ namespace Serialize {
     // serialize the disconnect request
     SerializedData PlayerDisconnectRequest(int id, int p1_score, int p2_score);
 
+    // serialize the disconnect response
+    SerializedData PlayerDisconnectResponse(int id, LeaderBoard leader);
+
 }  // namespace Serialize
 
 namespace DeSerialize {
@@ -78,6 +83,9 @@ namespace DeSerialize {
 
     // de-serialize the new opponent response
     DeSerializedData NewOpponentResponse(const char data[]);
+
+    // de-serialize the player disconnect response
+    DeSerializedData PlayerDisconnectRequest(const char data[]);
 
     // de-serialize the player disconnect response
     DeSerializedData PlayerDisconnectResponse(const char data[]);
