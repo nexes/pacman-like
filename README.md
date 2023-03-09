@@ -10,7 +10,7 @@ This project will only run on macOS and Linux due to the use of the Berkeley  (p
 ### To Build
 >chmod +x build.sh<br>
 >./buid.sh
-<br>
+
 ### To Run
 If there is no server running, you must run the server binary first
 > ./build/Server<br><br>
