@@ -30,7 +30,8 @@ namespace ServerInfo {
     // the number of connections allowed, passed to listen()
     const int back_log = 50;
 
-    static std::string server_port = "74672";
+    // static std::string server_port = "74672";
+    static std::string server_port = "8080";
 
     // the server hostname or IP
     // static std::string server_name = "localhost";
