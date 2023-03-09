@@ -3,8 +3,13 @@
 // this file will hold all the variables of the program. This way if something needs
 // to change it can be changed here
 #include <string>
+#include <vector>
+#include <tuple>
 
+// x, y
 using Position = std::pair<int, int>;
+// list of [player1 name, player1 score, player2 name, player2 score]
+using LeaderBoard = std::vector<std::tuple<std::string, int, std::string, int>>;
 
 namespace RequestType {
     // request types from client to server
@@ -25,12 +30,11 @@ namespace ServerInfo {
     // the number of connections allowed, passed to listen()
     const int back_log = 50;
 
-    // the server port number, default 8080
-    static std::string server_port = "8080";
+    static std::string server_port = "74672";
 
     // the server hostname or IP
-    // static std::string server_name = "csslab12.uwb.edu";
-    static std::string server_name = "localhost";
+    // static std::string server_name = "localhost";
+    static std::string server_name = "csslab12.uwb.edu";
 
     // 2k max data size to read from players buffer
     const int player_read_size = 2048;
