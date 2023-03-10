@@ -52,7 +52,8 @@ private:
         std::unordered_map<int, std::string> player_names;
     };
 
-    // critical sections for just the leader board
+    // critical sections for just the leader board. Seperating the threads critical
+    // sections based on the data needed.
     struct CriticalSection_Board
     {
         // mutex to lock when writing data

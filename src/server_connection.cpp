@@ -17,9 +17,6 @@ ServerConnection::ServerConnection() : socket_fd(-1), err_msg(""), thread_data()
 
 ServerConnection::~ServerConnection()
 {
-    // todo:
-    // this->client_pairs.clear();
-
     close(this->socket_fd);
 }
 
@@ -27,7 +24,6 @@ ServerConnection::~ServerConnection()
 // here. This will be servered on newPlayerRequests
 void ServerConnection::setGameMap(std::vector<std::string> map)
 {
-    // TODO:
     this->map = map;
 }
 
@@ -86,6 +82,7 @@ bool ServerConnection::setupConnection()
     return true;
 }
 
+// this will wait for incoming connections. pair the player and spawn a thread
 void ServerConnection::waitForPlayer()
 {
     bool accepting = true;
@@ -148,6 +145,7 @@ void ServerConnection::thread_handleConnection(int player_socket)
     char p1_data[ServerInfo::player_read_size];
 
     while (playing) {
+        // read incoming data
         int p1_read = read(player_socket, (void *)p1_data, sizeof(p1_data));
         if (p1_read == -1) {
             std::cerr << "Error reading player " << player_socket << strerror(p1_read)

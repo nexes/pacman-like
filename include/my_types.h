@@ -34,8 +34,8 @@ namespace ServerInfo {
     static std::string server_port = "8080";
 
     // the server hostname or IP
-    // static std::string server_name = "localhost";
-    static std::string server_name = "csslab12.uwb.edu";
+    static std::string server_name = "localhost";
+    // static std::string server_name = "csslab12.uwb.edu";
 
     // 2k max data size to read from players buffer
     const int player_read_size = 2048;
