@@ -1,6 +1,5 @@
-# CSS432_23W_Team404
+# Pac-Man Like Multiplayer project
 Joe Berria<br>
-CSS 432 Project
 
 ## <u>Description</u>
 This is a simple Pac-Man like game. This doesn't implement all (or really even most) of the game mechanics of Pac-Man. Just a way to demonstrate socket programming. But if you stand far enough back and squint, it may look like Pac-Man!
