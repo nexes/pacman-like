@@ -6,10 +6,10 @@ set(CMAKE_CXX_EXTENSIONS ON)
 set(CMAKE_BUILD_TYPE Debug)
 
 project(
-	Team404_Game
-	VERSION 1.0
-	LANGUAGES CXX
-	DESCRIPTION "Network game for UW CSS 432"
+    Team404_Game
+    VERSION 1.0
+    LANGUAGES CXX
+    DESCRIPTION "Network game for UW CSS 432"
 )
 
 # for c++ Threads
@@ -18,8 +18,9 @@ find_package(Threads REQUIRED)
 # So we can pull down FTXUI
 include(FetchContent)
 FetchContent_Declare(
-	ftxui
-	GIT_REPOSITORY https://github.com/ArthurSonzogni/ftxui
+    ftxui
+    GIT_REPOSITORY https://github.com/ArthurSonzogni/ftxui
+    GIT_TAG v4.0.0
 )
 FetchContent_MakeAvailable(ftxui)
 
